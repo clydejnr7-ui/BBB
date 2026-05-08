@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Sparkles, Zap } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
 
-// Each demo cycles: type prompt → generate → show site → repeat
 const DEMOS = [
   {
     prompt: "A modern coffee shop website with online ordering and menu...",
@@ -16,7 +15,8 @@ const DEMOS = [
       navLinks: ["Menu", "Order", "Locations", "About"],
       heroBg: "from-amber-900 to-amber-700",
       heroTitle: "Crafted with\nPassion & Care",
-      heroSub: "Fresh beans, expertly brewed. Order online for pickup.",heroCta: "Order Now",
+      heroSub: "Fresh beans, expertly brewed. Order online for pickup.",
+      heroCta: "Order Now",
       accent: "bg-amber-500",
       cards: [
         { color: "bg-amber-100", icon: "☕", label: "Espresso" },
@@ -81,7 +81,6 @@ const DEMOS = [
   },
 ]
 
-// Typing speed constants
 const TYPE_SPEED = 38
 const DELETE_SPEED = 18
 const PAUSE_AFTER_TYPE = 600
@@ -96,7 +95,7 @@ function MockWebsite({ site }: { site: typeof DEMOS[0]["site"]; visible: boolean
       {/* Navbar */}
       <div className="flex items-center justify-between px-4 py-2 bg-white/10 backdrop-blur-sm border-b border-white/10 shrink-0">
         <span className="text-white font-bold text-xs">{site.nav}</span>
-        <div className="flex gap-3">
+        <div className="hidden sm:flex gap-3">
           {site.navLinks.map((l) => (
             <span key={l} className="text-white/70 text-[9px] font-medium">{l}</span>
           ))}
@@ -183,7 +182,7 @@ function GeneratingOverlay() {
       <style>{`
         @keyframes barPulse {
           from { opacity: 0.3; transform: scaleY(0.6); }
-          to   { opacity: 1;   transform: scaleY(1); }
+          to   { opacity: 1;   transform: scaleY(1);   }
         }
       `}</style>
     </div>
@@ -265,6 +264,7 @@ export function Hero() {
 
       <div className="container mx-auto px-4 py-20">
         <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
+
           <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium">
             <Zap className="mr-1.5 h-3.5 w-3.5" />
             Powered by Advanced AI
@@ -282,22 +282,23 @@ export function Hero() {
             No coding required. Just describe what you want.
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row items-center gap-4">
-            <Link href="/auth/signup">
-              <Button size="lg" className="h-12 px-8 text-base">
+          <div className="mt-10 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <Link href="/auth/signup" className="w-full sm:w-auto">
+              <Button size="lg" className="h-12 px-8 text-base w-full sm:w-auto">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Start Building — 3 Free Credits
               </Button>
             </Link>
-            <Link href="#features">
-              <Button variant="outline" size="lg" className="h-12 px-8 text-base">
+            <Link href="#features" className="w-full sm:w-auto">
+              <Button variant="outline" size="lg" className="h-12 px-8 text-base w-full sm:w-auto">
                 See How It Works
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
 
-          <div className="mt-10 flex items-center gap-8 text-sm text-muted-foreground">
+          {/* Stats row — wraps cleanly on mobile */}
+          <div className="mt-10 flex flex-wrap justify-center items-center gap-4 sm:gap-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-500" />
               <span>10,000+ websites created</span>
@@ -311,6 +312,7 @@ export function Hero() {
           {/* Animated browser mockup */}
           <div className="mt-14 w-full max-w-3xl">
             <div className="rounded-xl border bg-card shadow-2xl overflow-hidden">
+
               {/* Browser chrome */}
               <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-3 shrink-0">
                 <div className="flex gap-1.5">
@@ -319,7 +321,7 @@ export function Hero() {
                   <div className="h-3 w-3 rounded-full bg-green-500" />
                 </div>
                 <div className="flex-1 flex justify-center">
-                  <div className="rounded-md bg-background px-4 py-1 text-xs text-muted-foreground font-mono">
+                  <div className="rounded-md bg-background px-4 py-1 text-xs text-muted-foreground font-mono truncate max-w-[200px] sm:max-w-none">
                     pngwebsitebuilders.site/generate
                   </div>
                 </div>
@@ -328,12 +330,12 @@ export function Hero() {
               {/* Prompt bar */}
               <div className="border-b bg-muted/30 px-4 py-2.5 flex items-center gap-3">
                 <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-sm text-foreground/80 font-mono flex-1 text-left min-h-[1.25rem]">
+                <span className="text-sm text-foreground/80 font-mono flex-1 text-left min-h-[1.25rem] truncate">
                   {typedText}
                   <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 align-middle animate-pulse" />
                 </span>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 hidden sm:flex">
                     {currentDemo.style}
                   </Badge>
                   {phase === "generating" && (
@@ -389,12 +391,16 @@ export function Hero() {
                   style={{
                     width: i === demoIndex ? 20 : 6,
                     height: 6,
-                    background: i === demoIndex ? "hsl(var(--primary))" : "hsl(var(--muted-foreground) / 0.3)",
+                    background:
+                      i === demoIndex
+                        ? "hsl(var(--primary))"
+                        : "hsl(var(--muted-foreground) / 0.3)",
                   }}
                 />
               ))}
             </div>
           </div>
+
         </div>
       </div>
     </section>
