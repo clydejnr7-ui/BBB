@@ -24,6 +24,7 @@ import {
   Tablet,
   Smartphone,
   ChevronLeft,
+  Circle,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -52,6 +53,121 @@ const deviceWidths: Record<DeviceType, string> = {
 }
 
 type Stage = "form" | "generating" | "preview"
+
+const LOG_STEPS = [
+  { delay: 0,    color: "text-blue-400",   text: "› Initializing AI workspace..." },
+  { delay: 600,  color: "text-white/50",   text: "  Loading model: openrouter/auto" },
+  { delay: 1200, color: "text-white/50",   text: "  Parsing project requirements..." },
+  { delay: 2000, color: "text-green-400",  text: "✓ Requirements analyzed" },
+  { delay: 2600, color: "text-blue-400",   text: "› Designing layout structure..." },
+  { delay: 3400, color: "text-white/50",   text: "  Creating navbar component" },
+  { delay: 4000, color: "text-white/50",   text: "  Building hero section" },
+  { delay: 4700, color: "text-white/50",   text: "  Generating features section" },
+  { delay: 5400, color: "text-green-400",  text: "✓ Layout structure complete" },
+  { delay: 6000, color: "text-blue-400",   text: "› Applying style theme..." },
+  { delay: 6800, color: "text-white/50",   text: "  Configuring Tailwind classes" },
+  { delay: 7500, color: "text-white/50",   text: "  Setting color palette & typography" },
+  { delay: 8200, color: "text-white/50",   text: "  Adding animations & transitions" },
+  { delay: 9000, color: "text-green-400",  text: "✓ Theme applied" },
+  { delay: 9600, color: "text-blue-400",   text: "› Sourcing images..." },
+  { delay: 10400,color: "text-white/50",   text: "  Fetching hero image (1400×700)" },
+  { delay: 11200,color: "text-white/50",   text: "  Fetching feature card images (×3)" },
+  { delay: 12000,color: "text-white/50",   text: "  Fetching gallery images" },
+  { delay: 12800,color: "text-green-400",  text: "✓ Images sourced" },
+  { delay: 13400,color: "text-blue-400",   text: "› Writing HTML & content..." },
+  { delay: 14200,color: "text-white/50",   text: "  Generating semantic markup" },
+  { delay: 15000,color: "text-white/50",   text: "  Writing copy & headings" },
+  { delay: 15800,color: "text-white/50",   text: "  Adding footer & meta tags" },
+  { delay: 16600,color: "text-white/50",   text: "  Making fully responsive" },
+  { delay: 17400,color: "text-blue-400",   text: "› Finalizing & saving..." },
+  { delay: 18200,color: "text-white/50",   text: "  Validating HTML structure" },
+  { delay: 19000,color: "text-white/50",   text: "  Saving to database" },
+  { delay: 19800,color: "text-yellow-400", text: "⚡ Almost ready..." },
+]
+
+function TerminalLoader({ projectName }: { projectName: string }) {
+  const [visibleLogs, setVisibleLogs] = useState<typeof LOG_STEPS>([])
+  const [dotCount, setDotCount] = useState(1)
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = []
+    LOG_STEPS.forEach((step, i) => {
+      timers.push(setTimeout(() => {
+        setVisibleLogs((prev) => [...prev, step])
+      }, step.delay))
+    })
+    return () => timers.forEach(clearTimeout)
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDotCount((d) => (d % 3) + 1)
+    }, 400)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [visibleLogs])
+
+  const progress = Math.min(
+    Math.round((visibleLogs.length / LOG_STEPS.length) * 90),
+    90
+  )
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full w-full p-8">
+      {/* Terminal window */}
+      <div className="w-full max-w-2xl rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+        {/* Terminal titlebar */}
+        <div className="flex items-center gap-2 px-4 py-3 bg-[#1c1c1e] border-b border-white/10">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+            <div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+            <div className="w-3 h-3 rounded-full bg-[#28c840]" />
+          </div>
+          <span className="flex-1 text-center text-xs text-white/30 font-mono">
+            siteforge — generating {projectName}
+          </span>
+        </div>
+
+        {/* Terminal body */}
+        <div className="bg-[#0d1117] p-5 h-72 overflow-y-auto font-mono text-sm space-y-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+          <p className="text-white/30 mb-3 text-xs">SiteForge AI v2.0 — Website Generator</p>
+          {visibleLogs.map((log, i) => (
+            <p
+              key={i}
+              className={cn("leading-relaxed animate-fadeIn", log.color)}
+              style={{ animationDuration: "0.3s" }}
+            >
+              {log.text}
+            </p>
+          ))}
+          {/* Blinking cursor */}
+          <p className="text-white/60">
+            <span className="inline-block w-2 h-4 bg-white/60 align-middle animate-pulse" />
+          </p>
+          <div ref={bottomRef} />
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="w-full max-w-2xl mt-5 space-y-2">
+        <div className="flex justify-between text-xs text-white/30 font-mono">
+          <span>Building your website{".".repeat(dotCount)}</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-primary transition-all duration-700 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function GeneratePage() {
   const [stage, setStage] = useState<Stage>("form")
@@ -126,7 +242,6 @@ export default function GeneratePage() {
         throw new Error(result.error || "Generation failed")
       }
 
-      // Fetch the actual HTML from the preview slug
       const htmlResponse = await fetch(`/api/preview/${result.previewSlug}`)
       const html = await htmlResponse.text()
 
@@ -158,13 +273,12 @@ export default function GeneratePage() {
     runGeneration(data)
   }
 
-  // ─── Full-screen overlay (generating + preview) ───────────────────────────
+  // ─── Full-screen overlay ──────────────────────────────────────────────────
   if (stage === "generating" || stage === "preview") {
     return (
       <div className="fixed inset-0 z-50 flex bg-[#0d1117]">
         {/* LEFT PANEL */}
         <div className="w-80 shrink-0 flex flex-col border-r border-white/10 bg-[#161b22]">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
@@ -180,7 +294,6 @@ export default function GeneratePage() {
             </button>
           </div>
 
-          {/* Project info */}
           <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
             {submittedData && (
               <>
@@ -199,7 +312,6 @@ export default function GeneratePage() {
               </>
             )}
 
-            {/* Status */}
             <div className="rounded-lg bg-white/5 border border-white/10 p-4">
               {stage === "generating" ? (
                 <div className="flex items-center gap-3">
@@ -211,7 +323,7 @@ export default function GeneratePage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-green-400 shrink-0" />
+                  <Circle className="h-2 w-2 fill-green-400 text-green-400 shrink-0" />
                   <div>
                     <p className="text-white text-sm font-medium">Ready</p>
                     <p className="text-white/40 text-xs mt-0.5">Your website is live</p>
@@ -221,7 +333,6 @@ export default function GeneratePage() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="px-4 py-4 border-t border-white/10 space-y-2">
             {stage === "preview" && (
               <>
@@ -235,11 +346,7 @@ export default function GeneratePage() {
                   <RefreshCw className="h-3.5 w-3.5" />
                   Regenerate (1 credit)
                 </Button>
-                <a
-                  href={`/preview/${previewSlug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href={`/preview/${previewSlug}`} target="_blank" rel="noopener noreferrer">
                   <Button
                     variant="outline"
                     size="sm"
@@ -261,12 +368,11 @@ export default function GeneratePage() {
           </div>
         </div>
 
-        {/* RIGHT PANEL — live preview only */}
+        {/* RIGHT PANEL */}
         <div className="flex-1 flex flex-col">
-          {/* Preview toolbar */}
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-[#161b22]">
             <span className="text-xs text-white/40 font-mono">
-              {stage === "generating" ? "Generating your website..." : `preview/${previewSlug}`}
+              {stage === "generating" ? "● generating..." : `preview/${previewSlug}`}
             </span>
             {stage === "preview" && (
               <div className="flex items-center gap-1">
@@ -289,33 +395,13 @@ export default function GeneratePage() {
             )}
           </div>
 
-          {/* Preview area */}
-          <div className="flex-1 overflow-auto flex items-start justify-center bg-[#0d1117] p-0">
+          <div className="flex-1 overflow-auto flex items-start justify-center bg-[#0d1117]">
             {stage === "generating" ? (
-              <div className="flex flex-col items-center justify-center h-full w-full gap-6">
-                {/* Animated loading UI */}
-                <div className="space-y-3 w-full max-w-2xl px-8 opacity-20 animate-pulse">
-                  <div className="h-64 rounded-xl bg-white/10 w-full" />
-                  <div className="flex gap-3">
-                    <div className="h-40 rounded-xl bg-white/10 flex-1" />
-                    <div className="h-40 rounded-xl bg-white/10 flex-1" />
-                    <div className="h-40 rounded-xl bg-white/10 flex-1" />
-                  </div>
-                  <div className="h-24 rounded-xl bg-white/10 w-full" />
-                </div>
-                <div className="text-center">
-                  <Loader2 className="h-6 w-6 text-primary animate-spin mx-auto mb-3" />
-                  <p className="text-white/60 text-sm">Building your website with AI...</p>
-                </div>
-              </div>
+              <TerminalLoader projectName={submittedData?.name ?? "your website"} />
             ) : blobUrl ? (
               <div
                 className="h-full transition-all duration-300 bg-white"
-                style={{
-                  width: deviceWidths[device],
-                  maxWidth: "100%",
-                  minHeight: "100%",
-                }}
+                style={{ width: deviceWidths[device], maxWidth: "100%", minHeight: "100%" }}
               >
                 <iframe
                   key={blobUrl}
@@ -333,7 +419,7 @@ export default function GeneratePage() {
     )
   }
 
-  // ─── Form view (default) ──────────────────────────────────────────────────
+  // ─── Form view ────────────────────────────────────────────────────────────
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div>
@@ -374,16 +460,14 @@ export default function GeneratePage() {
         <div className="rounded-xl border bg-card p-6 space-y-6">
           <div>
             <h2 className="text-lg font-semibold">Project Details</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Tell us about the website you want to create</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Tell us about the website you want to create
+            </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="name">Project Name</Label>
-            <Input
-              id="name"
-              placeholder="My Awesome Startup"
-              {...register("name")}
-            />
+            <Input id="name" placeholder="My Awesome Startup" {...register("name")} />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
 
@@ -395,7 +479,9 @@ export default function GeneratePage() {
               rows={4}
               {...register("description")}
             />
-            {errors.description && <p className="text-sm text-destructive">{errors.description.message}</p>}
+            {errors.description && (
+              <p className="text-sm text-destructive">{errors.description.message}</p>
+            )}
             <p className="text-xs text-muted-foreground">
               Be specific — the more detail you provide, the better the result.
             </p>
