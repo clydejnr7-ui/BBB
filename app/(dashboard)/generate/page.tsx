@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -74,7 +74,6 @@ const LOG_STEPS = [
   { delay: 19800, color: "text-yellow-400", text: "⚡ Almost ready..." },
 ]
 
-// Script injected into every generated page to enable editing
 const EDIT_SCRIPT = `
 <script id="sf-edit-engine">
 (function() {
@@ -90,11 +89,9 @@ const EDIT_SCRIPT = `
       var img = document.querySelector('[data-sf-id="' + e.data.id + '"]');
       if (img) { img.src = e.data.src; img.srcset = ''; }
     } else if (e.data.type === 'sf_getHTML') {
-      // Remove the edit script from the saved HTML
       var clone = document.documentElement.cloneNode(true);
       var scriptEl = clone.querySelector('#sf-edit-engine');
       if (scriptEl) scriptEl.remove();
-      // Strip contenteditable & data-sf-id attrs
       clone.querySelectorAll('[contenteditable]').forEach(function(el) {
         el.removeAttribute('contenteditable');
       });
@@ -111,13 +108,11 @@ const EDIT_SCRIPT = `
 
   function enableEditing() {
     document.body.style.userSelect = 'text';
-    // Tag images
     document.querySelectorAll('img').forEach(function(img, i) {
       img.setAttribute('data-sf-id', 'img-' + i);
       img.style.cursor = 'pointer';
       img.style.transition = 'outline 0.1s';
     });
-    // Tag text elements (skip nested ones)
     var selectors = 'h1,h2,h3,h4,h5,h6,p,li,td,th,button,a,span,label';
     document.querySelectorAll(selectors).forEach(function(el, i) {
       if (el.closest('[contenteditable="true"]')) return;
@@ -204,6 +199,15 @@ function injectEditScript(html: string): string {
   return html + EDIT_SCRIPT
 }
 
+const IMAGE_PRESETS = [
+  { label: "Nature", seed: "nature,landscape" },
+  { label: "City", seed: "city,urban" },
+  { label: "Business", seed: "business,office" },
+  { label: "Tech", seed: "technology,computer" },
+  { label: "People", seed: "people,team" },
+  { label: "Food", seed: "food,restaurant" },
+]
+
 function TerminalLoader({ projectName }: { projectName: string }) {
   const [visibleLogs, setVisibleLogs] = useState<typeof LOG_STEPS>([])
   const [dotCount, setDotCount] = useState(1)
@@ -270,16 +274,6 @@ function TerminalLoader({ projectName }: { projectName: string }) {
   )
 }
 
-// Quick image seed presets for replacement
-const IMAGE_PRESETS = [
-  { label: "Nature", seed: "nature,landscape" },
-  { label: "City", seed: "city,urban" },
-  { label: "Business", seed: "business,office" },
-  { label: "Tech", seed: "technology,computer" },
-  { label: "People", seed: "people,team" },
-  { label: "Food", seed: "food,restaurant" },
-]
-
 export default function GeneratePage() {
   const [stage, setStage] = useState<Stage>("form")
   const [credits, setCredits] = useState<number | null>(null)
@@ -291,7 +285,6 @@ export default function GeneratePage() {
   const [editMode, setEditMode] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [savedOk, setSavedOk] = useState(false)
-  // Image replacement dialog
   const [imgDialog, setImgDialog] = useState<{ id: string; src: string } | null>(null)
   const [imgUrl, setImgUrl] = useState("")
 
@@ -316,7 +309,6 @@ export default function GeneratePage() {
     fetchCredits()
   }, [supabase])
 
-  // Listen for messages from the iframe
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       if (!e.data?.type) return
@@ -332,7 +324,6 @@ export default function GeneratePage() {
     return () => window.removeEventListener("message", onMessage)
   }, [previewSlug])
 
-  // Sync edit mode to iframe whenever it changes
   useEffect(() => {
     iframeRef.current?.contentWindow?.postMessage({ type: "sf_setEditMode", enabled: editMode }, "*")
   }, [editMode])
@@ -352,10 +343,10 @@ export default function GeneratePage() {
   async function saveHtmlToServer(html: string) {
     setIsSaving(true)
     try {
-      const res = await fetch(`/api/sites/${previewSlug}`, {
+      const res = await fetch(`/api/sites`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html_code: html }),
+        body: JSON.stringify({ slug: previewSlug, html_code: html }),
       })
       if (!res.ok) throw new Error()
       setSavedOk(true)
@@ -431,7 +422,6 @@ export default function GeneratePage() {
     runGeneration(data)
   }
 
-  // ─── Full-screen overlay ──────────────────────────────────────────────────
   if (stage === "generating" || stage === "preview") {
     return (
       <>
@@ -488,7 +478,6 @@ export default function GeneratePage() {
                 )}
               </div>
 
-              {/* Edit mode tip */}
               {stage === "preview" && editMode && (
                 <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 space-y-1">
                   <p className="text-blue-400 text-xs font-medium">Edit mode active</p>
@@ -500,7 +489,6 @@ export default function GeneratePage() {
             <div className="px-4 py-4 border-t border-white/10 space-y-2">
               {stage === "preview" && (
                 <>
-                  {/* Edit toggle */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -514,7 +502,6 @@ export default function GeneratePage() {
                     {editMode ? "Exit Edit Mode" : "Edit Content"}
                   </Button>
 
-                  {/* Save */}
                   {editMode && (
                     <Button
                       size="sm"
@@ -630,7 +617,6 @@ export default function GeneratePage() {
               </div>
 
               <div className="px-5 py-4 space-y-4">
-                {/* Current image preview */}
                 <div>
                   <p className="text-xs text-white/40 mb-2">Current image</p>
                   <div className="rounded-lg overflow-hidden bg-white/5 border border-white/10" style={{ height: 120 }}>
@@ -639,15 +625,14 @@ export default function GeneratePage() {
                   </div>
                 </div>
 
-                {/* Quick presets */}
                 <div>
                   <p className="text-xs text-white/40 mb-2">Quick replace</p>
                   <div className="grid grid-cols-3 gap-2">
-                    {IMAGE_PRESETS.map((preset, i) => (
+                    {IMAGE_PRESETS.map((preset) => (
                       <button
                         key={preset.label}
                         onClick={() => setImgUrl(`https://picsum.photos/seed/${preset.seed}/800/500`)}
-                        className="rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 transition-colors relative group"
+                        className="rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 transition-colors relative"
                         style={{ height: 60 }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -664,7 +649,6 @@ export default function GeneratePage() {
                   </div>
                 </div>
 
-                {/* Custom URL */}
                 <div>
                   <p className="text-xs text-white/40 mb-2">Or paste any image URL</p>
                   <Input
