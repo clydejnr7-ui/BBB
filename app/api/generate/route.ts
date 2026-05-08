@@ -37,21 +37,21 @@ Style: ${style}
 
 Return only valid HTML/CSS/JS (no markdown wrappers, no \`\`\`html blocks). Use Tailwind CSS via CDN (<script src="https://cdn.tailwindcss.com"></script>).
 
-IMAGES — You MUST include real images throughout the page using Unsplash Source URLs. Format:
-  https://source.unsplash.com/featured/{width}x{height}/?{keyword1},{keyword2}
+IMAGES — You MUST include real images throughout the page using LoremFlickr URLs. Format:
+  https://loremflickr.com/{width}/{height}/{keyword1},{keyword2}
 
 Rules for images:
 - Choose keywords that are highly relevant to the website topic and description
-- Hero section: use a large banner image (1200x600 or 1400x700) with relevant keywords
-- Feature/service cards: use smaller images (400x300 or 600x400) with specific keywords per card
-- Team/about section: use portrait images (400x500) with keywords like "person,professional,portrait"
+- Hero section: use a large banner image (1400/700) with relevant keywords
+- Feature/service cards: use smaller images (600/400) with specific keywords per card
+- Team/about section: use portrait images (400/500) with keywords like "person,professional,portrait"
 - Gallery or testimonial sections: include additional contextual images
 - Always add loading="lazy" and a descriptive alt attribute to every img tag
 - Wrap hero images in a relative div and overlay text on top using absolute positioning and a dark overlay (bg-black/40 or similar)
 
 Example image tags:
-  <img src="https://source.unsplash.com/featured/1400x700/?travel,beach,tropical" alt="Tropical beach destination" loading="lazy" class="w-full h-full object-cover" />
-  <img src="https://source.unsplash.com/featured/600x400/?adventure,hiking" alt="Adventure hiking" loading="lazy" class="w-full h-48 object-cover rounded-lg" />
+  <img src="https://loremflickr.com/1400/700/travel,beach,tropical" alt="Tropical beach destination" loading="lazy" class="w-full h-full object-cover" />
+  <img src="https://loremflickr.com/600/400/adventure,hiking" alt="Adventure hiking" loading="lazy" class="w-full h-48 object-cover rounded-lg" />
 
 Requirements:
 - The design must be modern, accessible, and visually stunning
@@ -84,14 +84,30 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
           { role: "system", content: systemPrompt },
           { role: "user", content: `Create a ${style} website for: ${name}. ${description}` }
         ],
-        max_tokens: 8000,
+        max_tokens: 16000,
         temperature: 0.7,
+        route: "fallback",
       }),
     })
 
     if (!response.ok) {
       const errorData = await response.json()
-      console.error("OpenRouter error:", errorData)
+      console.error("OpenRouter error:", response.status, errorData)
+
+      if (response.status === 429) {
+        return NextResponse.json(
+          { error: "AI is rate limited. Please wait 30 seconds and try again." },
+          { status: 429 }
+        )
+      }
+
+      if (response.status === 503 || response.status === 502) {
+        return NextResponse.json(
+          { error: "AI service is temporarily unavailable. Please try again shortly." },
+          { status: 503 }
+        )
+      }
+
       return NextResponse.json({ error: "Failed to generate website" }, { status: 500 })
     }
 
