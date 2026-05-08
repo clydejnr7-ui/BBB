@@ -14,8 +14,8 @@ export function Header() {
             <Image
               src="https://i.8upload.com/image/dfc34217333995c1/gemini-generated-image-vp2e7avp2e7avp2e.webp"
               alt="PNG Website Builders"
-              width={32}
-              height={32}
+              width={48}
+              height={48}
               className="rounded-lg object-contain"
             />
             <span className="text-xl font-bold">PNG Website Builders</span>
