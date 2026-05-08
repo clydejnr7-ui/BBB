@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 export async function sendWelcomeEmail(email: string) {
   try {
     await resend.emails.send({
-      from: "SiteForge <noreply@siteforge.ai>",
+      from: "SiteForge <noreply@pngwebsitebuilders.site>",
       to: email,
       subject: "Welcome to SiteForge - Your 3 Free Credits Await!",
       html: `
