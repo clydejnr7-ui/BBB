@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Monitor, Tablet, Smartphone, Code, Eye, Copy, Check } from "lucide-react"
+import { Monitor, Tablet, Smartphone, Code, Eye, Copy, Check, Columns2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -11,7 +11,7 @@ interface PreviewFrameProps {
 }
 
 type DeviceType = "desktop" | "tablet" | "mobile"
-type ViewMode = "preview" | "code"
+type ViewMode = "preview" | "code" | "split"
 
 const deviceSizes: Record<DeviceType, { width: string; icon: typeof Monitor }> = {
   desktop: { width: "100%", icon: Monitor },
@@ -21,7 +21,7 @@ const deviceSizes: Record<DeviceType, { width: string; icon: typeof Monitor }> =
 
 export function PreviewFrame({ htmlCode }: PreviewFrameProps) {
   const [device, setDevice] = useState<DeviceType>("desktop")
-  const [viewMode, setViewMode] = useState<ViewMode>("preview")
+  const [viewMode, setViewMode] = useState<ViewMode>("split")
   const [blobUrl, setBlobUrl] = useState<string>("")
   const [copied, setCopied] = useState(false)
 
@@ -29,10 +29,7 @@ export function PreviewFrame({ htmlCode }: PreviewFrameProps) {
     const blob = new Blob([htmlCode], { type: "text/html" })
     const url = URL.createObjectURL(blob)
     setBlobUrl(url)
-
-    return () => {
-      URL.revokeObjectURL(url)
-    }
+    return () => URL.revokeObjectURL(url)
   }, [htmlCode])
 
   async function copyHtml() {
@@ -46,8 +43,11 @@ export function PreviewFrame({ htmlCode }: PreviewFrameProps) {
     }
   }
 
+  const showCode = viewMode === "code" || viewMode === "split"
+  const showPreview = viewMode === "preview" || viewMode === "split"
+
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex flex-col h-full gap-3">
       {/* Toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         {/* View Mode Toggle */}
@@ -62,6 +62,15 @@ export function PreviewFrame({ htmlCode }: PreviewFrameProps) {
             Preview
           </Button>
           <Button
+            variant={viewMode === "split" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 px-3"
+            onClick={() => setViewMode("split")}
+          >
+            <Columns2 className="h-3.5 w-3.5 mr-1.5" />
+            Split
+          </Button>
+          <Button
             variant={viewMode === "code" ? "default" : "ghost"}
             size="sm"
             className="h-7 px-3"
@@ -72,87 +81,98 @@ export function PreviewFrame({ htmlCode }: PreviewFrameProps) {
           </Button>
         </div>
 
-        {/* Device Selector — only shown in preview mode */}
-        {viewMode === "preview" && (
-          <div className="flex items-center gap-1">
-            {(Object.keys(deviceSizes) as DeviceType[]).map((deviceType) => {
-              const { icon: Icon } = deviceSizes[deviceType]
-              return (
-                <Button
-                  key={deviceType}
-                  variant={device === deviceType ? "default" : "outline"}
-                  size="sm"
-                  className="h-8"
-                  onClick={() => setDevice(deviceType)}
-                >
-                  <Icon className="h-4 w-4 mr-1.5" />
-                  <span className="capitalize hidden sm:inline">{deviceType}</span>
-                </Button>
-              )
-            })}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Device Selector — only in preview or split mode */}
+          {(viewMode === "preview" || viewMode === "split") && (
+            <div className="flex items-center gap-1">
+              {(Object.keys(deviceSizes) as DeviceType[]).map((deviceType) => {
+                const { icon: Icon } = deviceSizes[deviceType]
+                return (
+                  <Button
+                    key={deviceType}
+                    variant={device === deviceType ? "default" : "outline"}
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setDevice(deviceType)}
+                  >
+                    <Icon className="h-4 w-4 mr-1.5" />
+                    <span className="capitalize hidden sm:inline">{deviceType}</span>
+                  </Button>
+                )
+              })}
+            </div>
+          )}
 
-        {/* Copy button — shown in code mode */}
-        {viewMode === "code" && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8"
-            onClick={copyHtml}
-          >
-            {copied ? (
-              <>
-                <Check className="h-3.5 w-3.5 mr-1.5 text-green-500" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5 mr-1.5" />
-                Copy HTML
-              </>
-            )}
-          </Button>
-        )}
+          {/* Copy button */}
+          {(viewMode === "code" || viewMode === "split") && (
+            <Button variant="outline" size="sm" className="h-8" onClick={copyHtml}>
+              {copied ? (
+                <>
+                  <Check className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5 mr-1.5" />
+                  Copy HTML
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Preview Container */}
-      {viewMode === "preview" && (
-        <div className="flex-1 flex justify-center">
+      {/* Main Content */}
+      <div className={cn("flex-1 flex gap-3 min-h-0", viewMode === "split" ? "flex-row" : "flex-col")}>
+        {/* Code Panel */}
+        {showCode && (
           <div
             className={cn(
-              "bg-background rounded-lg border shadow-lg overflow-hidden transition-all duration-300",
-              device === "desktop" ? "w-full" : ""
+              "relative rounded-lg border overflow-hidden bg-[#0d1117] flex flex-col",
+              viewMode === "split" ? "w-1/2 min-h-[600px]" : "flex-1 min-h-[600px]"
             )}
-            style={{
-              width: deviceSizes[device].width,
-              maxWidth: "100%",
-            }}
           >
-            <iframe
-              src={blobUrl}
-              className="w-full h-full min-h-[600px]"
-              sandbox="allow-scripts allow-same-origin"
-              title="Website Preview"
-            />
+            <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/10 shrink-0">
+              <span className="text-xs text-white/50 font-mono">index.html</span>
+              <span className="text-xs text-white/30">{htmlCode.split("\n").length} lines</span>
+            </div>
+            <div className="overflow-auto flex-1">
+              <pre className="text-sm font-mono text-[#e6edf3] whitespace-pre p-4">
+                <code>{htmlCode}</code>
+              </pre>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Code Viewer */}
-      {viewMode === "code" && (
-        <div className="flex-1 relative rounded-lg border overflow-hidden bg-[#0d1117]">
-          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/10 z-10">
-            <span className="text-xs text-white/50 font-mono">index.html</span>
-            <span className="text-xs text-white/30">{htmlCode.split("\n").length} lines</span>
+        {/* Preview Panel */}
+        {showPreview && (
+          <div
+            className={cn(
+              "flex flex-col",
+              viewMode === "split" ? "w-1/2" : "flex-1"
+            )}
+          >
+            <div className="flex justify-center h-full">
+              <div
+                className={cn(
+                  "bg-background rounded-lg border shadow-lg overflow-hidden transition-all duration-300 w-full min-h-[600px]",
+                )}
+                style={{
+                  width: viewMode === "split" ? "100%" : deviceSizes[device].width,
+                  maxWidth: "100%",
+                }}
+              >
+                <iframe
+                  src={blobUrl}
+                  className="w-full h-full min-h-[600px]"
+                  sandbox="allow-scripts allow-same-origin"
+                  title="Website Preview"
+                />
+              </div>
+            </div>
           </div>
-          <div className="overflow-auto h-full pt-10 pb-4">
-            <pre className="text-sm font-mono text-[#e6edf3] whitespace-pre p-4 min-h-[600px]">
-              <code>{htmlCode}</code>
-            </pre>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
