@@ -79,7 +79,7 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
         "X-Title": "SiteForge AI",
       },
       body: JSON.stringify({
-        model: "qwen/qwen3-next-80b-a3b-instruct:free",
+        model: "openrouter/auto",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Create a ${style} website for: ${name}. ${description}` }
