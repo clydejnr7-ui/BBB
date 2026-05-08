@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Sparkles } from "lucide-react"
+import Image from "next/image"
 
 export function Header() {
   return (
@@ -11,10 +11,14 @@ export function Header() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">SiteForge</span>
+            <Image
+              src="https://i.8upload.com/image/dfc34217333995c1/gemini-generated-image-vp2e7avp2e7avp2e.webp"
+              alt="PNG Website Builders"
+              width={32}
+              height={32}
+              className="rounded-lg object-contain"
+            />
+            <span className="text-xl font-bold">PNG Website Builders</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
