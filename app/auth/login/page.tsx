@@ -63,9 +63,7 @@ function LoginForm() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Welcome back</CardTitle>
-        <CardDescription>
-          Sign in to your account to continue
-        </CardDescription>
+        <CardDescription>Sign in to your account to continue</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
@@ -83,7 +81,15 @@ function LoginForm() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                href="/auth/forgot-password"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <Input
               id="password"
               type="password"
