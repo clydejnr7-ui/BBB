@@ -79,7 +79,7 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
         "X-Title": "SiteForge AI",
       },
       body: JSON.stringify({
-        model: "model: "deepseek/deepseek-v4-pro",
+        model: "deepseek/deepseek-v4-pro",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Create a ${style} website for: ${name}. ${description}` }
@@ -127,7 +127,6 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
       return NextResponse.json({ error: "Failed to save website" }, { status: 500 })
     }
 
-    // Deduct credit — skip for admin accounts
     if (!profile.is_admin) {
       const { error: creditError } = await adminClient
         .from("profiles")
