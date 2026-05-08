@@ -79,7 +79,7 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
         "X-Title": "SiteForge AI",
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-v4-pro",
+        model: "qwen/qwen3-next-80b-a3b-instruct:free",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Create a ${style} website for: ${name}. ${description}` }
