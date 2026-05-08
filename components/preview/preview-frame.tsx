@@ -82,8 +82,8 @@ export function PreviewFrame({ htmlCode }: PreviewFrameProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Device Selector — only in preview or split mode */}
-          {(viewMode === "preview" || viewMode === "split") && (
+          {/* Device Selector — only in preview mode */}
+          {viewMode === "preview" && (
             <div className="flex items-center gap-1">
               {(Object.keys(deviceSizes) as DeviceType[]).map((deviceType) => {
                 const { icon: Icon } = deviceSizes[deviceType]
@@ -104,7 +104,7 @@ export function PreviewFrame({ htmlCode }: PreviewFrameProps) {
           )}
 
           {/* Copy button */}
-          {(viewMode === "code" || viewMode === "split") && (
+          {showCode && (
             <Button variant="outline" size="sm" className="h-8" onClick={copyHtml}>
               {copied ? (
                 <>
@@ -122,22 +122,35 @@ export function PreviewFrame({ htmlCode }: PreviewFrameProps) {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className={cn("flex-1 flex gap-3 min-h-0", viewMode === "split" ? "flex-row" : "flex-col")}>
+      {/* Main Content Area */}
+      <div
+        className={cn(
+          "flex-1 flex min-h-0",
+          viewMode === "split" ? "flex-row gap-3" : "flex-col"
+        )}
+      >
         {/* Code Panel */}
         {showCode && (
           <div
             className={cn(
               "relative rounded-lg border overflow-hidden bg-[#0d1117] flex flex-col",
-              viewMode === "split" ? "w-1/2 min-h-[600px]" : "flex-1 min-h-[600px]"
+              viewMode === "split" ? "w-1/2" : "flex-1",
+              "min-h-[600px]"
             )}
           >
             <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/10 shrink-0">
-              <span className="text-xs text-white/50 font-mono">index.html</span>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500/70" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/70" />
+                </div>
+                <span className="text-xs text-white/50 font-mono ml-2">index.html</span>
+              </div>
               <span className="text-xs text-white/30">{htmlCode.split("\n").length} lines</span>
             </div>
             <div className="overflow-auto flex-1">
-              <pre className="text-sm font-mono text-[#e6edf3] whitespace-pre p-4">
+              <pre className="text-sm font-mono text-[#e6edf3] whitespace-pre p-4 leading-relaxed">
                 <code>{htmlCode}</code>
               </pre>
             </div>
@@ -148,28 +161,26 @@ export function PreviewFrame({ htmlCode }: PreviewFrameProps) {
         {showPreview && (
           <div
             className={cn(
-              "flex flex-col",
-              viewMode === "split" ? "w-1/2" : "flex-1"
+              "flex flex-col rounded-lg border overflow-hidden bg-background shadow-lg",
+              viewMode === "split" ? "w-1/2" : "flex-1",
+              "min-h-[600px]"
             )}
+            style={{
+              width: viewMode === "preview"
+                ? deviceSizes[device].width
+                : undefined,
+              maxWidth: "100%",
+              margin: viewMode === "preview" ? "0 auto" : undefined,
+            }}
           >
-            <div className="flex justify-center h-full">
-              <div
-                className={cn(
-                  "bg-background rounded-lg border shadow-lg overflow-hidden transition-all duration-300 w-full min-h-[600px]",
-                )}
-                style={{
-                  width: viewMode === "split" ? "100%" : deviceSizes[device].width,
-                  maxWidth: "100%",
-                }}
-              >
-                <iframe
-                  src={blobUrl}
-                  className="w-full h-full min-h-[600px]"
-                  sandbox="allow-scripts allow-same-origin"
-                  title="Website Preview"
-                />
-              </div>
-            </div>
+            {blobUrl && (
+              <iframe
+                src={blobUrl}
+                className="w-full h-full min-h-[600px]"
+                sandbox="allow-scripts allow-same-origin"
+                title="Website Preview"
+              />
+            )}
           </div>
         )}
       </div>
