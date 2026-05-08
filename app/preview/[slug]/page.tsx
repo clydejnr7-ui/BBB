@@ -1,7 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { notFound } from "next/navigation"
-import { PreviewFrame } from "@/components/preview/preview-frame"
-import { PreviewHeader } from "@/components/preview/preview-header"
 
 interface PreviewPageProps {
   params: Promise<{ slug: string }>
@@ -9,24 +7,36 @@ interface PreviewPageProps {
 
 export default async function PreviewPage({ params }: PreviewPageProps) {
   const { slug } = await params
-  const supabase = await createClient()
 
-  const { data: site } = await supabase
+  const adminClient = createAdminClient()
+  const { data: site } = await adminClient
     .from("generated_sites")
-    .select("*")
+    .select("id")
     .eq("preview_slug", slug)
     .single()
 
-  if (!site) {
-    notFound()
-  }
+  if (!site) notFound()
 
   return (
-    <div className="min-h-screen flex flex-col bg-muted/30">
-      <PreviewHeader site={site} />
-      <div className="flex-1 p-4">
-        <PreviewFrame htmlCode={site.html_code} />
-      </div>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        margin: 0,
+        padding: 0,
+        overflow: "hidden",
+      }}
+    >
+      <iframe
+        src={`/api/preview/${slug}`}
+        style={{
+          width: "100%",
+          height: "100%",
+          border: "none",
+          display: "block",
+        }}
+        title="Website Preview"
+      />
     </div>
   )
 }
