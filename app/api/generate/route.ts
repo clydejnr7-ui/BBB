@@ -19,7 +19,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Check user credits
     const adminClient = createAdminClient()
     const { data: profile } = await adminClient
       .from("profiles")
@@ -31,20 +30,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 })
     }
 
-    // Generate website using OpenRouter
     const systemPrompt = `You are an expert frontend developer. Generate a complete, responsive one-page website based on this request:
 Project name: ${name}
 Description: ${description}
 Style: ${style}
 
-Return only valid HTML/CSS/JS (no markdown wrappers, no \`\`\`html blocks). Use Tailwind CSS via CDN (<script src="https://cdn.tailwindcss.com"></script>). 
+Return only valid HTML/CSS/JS (no markdown wrappers, no \`\`\`html blocks). Use Tailwind CSS via CDN (<script src="https://cdn.tailwindcss.com"></script>).
+
+IMAGES — You MUST include real images throughout the page using Unsplash Source URLs. Format:
+  https://source.unsplash.com/featured/{width}x{height}/?{keyword1},{keyword2}
+
+Rules for images:
+- Choose keywords that are highly relevant to the website topic and description
+- Hero section: use a large banner image (1200x600 or 1400x700) with relevant keywords
+- Feature/service cards: use smaller images (400x300 or 600x400) with specific keywords per card
+- Team/about section: use portrait images (400x500) with keywords like "person,professional,portrait"
+- Gallery or testimonial sections: include additional contextual images
+- Always add loading="lazy" and a descriptive alt attribute to every img tag
+- Wrap hero images in a relative div and overlay text on top using absolute positioning and a dark overlay (bg-black/40 or similar)
+
+Example image tags:
+  <img src="https://source.unsplash.com/featured/1400x700/?travel,beach,tropical" alt="Tropical beach destination" loading="lazy" class="w-full h-full object-cover" />
+  <img src="https://source.unsplash.com/featured/600x400/?adventure,hiking" alt="Adventure hiking" loading="lazy" class="w-full h-48 object-cover rounded-lg" />
 
 Requirements:
 - The design must be modern, accessible, and visually stunning
 - Include a navbar with the project name and navigation links
-- Include a hero section with a compelling headline and CTA button
-- Include a features section with at least 3 feature cards
-- Include a testimonials or about section
+- Include a hero section with a full-width background image and compelling headline overlaid on it
+- Include a features/services section with image cards (at least 3)
+- Include a gallery or about section with additional images
 - Include a footer with copyright and links
 - All links should use href="#"
 - Use semantic HTML elements
@@ -61,11 +75,11 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
       headers: {
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://siteforge.ai",
+        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://pngwebsitebuilders.site",
         "X-Title": "SiteForge AI",
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-v4-flash",
+        model: "deepseek/deepseek-v4-pro",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Create a ${style} website for: ${name}. ${description}` }
@@ -88,23 +102,14 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
       return NextResponse.json({ error: "No content generated" }, { status: 500 })
     }
 
-    // Clean up the HTML (remove any markdown wrappers if present)
     let cleanHtml = generatedHtml.trim()
-    if (cleanHtml.startsWith("```html")) {
-      cleanHtml = cleanHtml.slice(7)
-    }
-    if (cleanHtml.startsWith("```")) {
-      cleanHtml = cleanHtml.slice(3)
-    }
-    if (cleanHtml.endsWith("```")) {
-      cleanHtml = cleanHtml.slice(0, -3)
-    }
+    if (cleanHtml.startsWith("```html")) cleanHtml = cleanHtml.slice(7)
+    if (cleanHtml.startsWith("```")) cleanHtml = cleanHtml.slice(3)
+    if (cleanHtml.endsWith("```")) cleanHtml = cleanHtml.slice(0, -3)
     cleanHtml = cleanHtml.trim()
 
-    // Generate unique preview slug
     const previewSlug = nanoid(10)
 
-    // Save to database
     const { error: insertError } = await adminClient
       .from("generated_sites")
       .insert({
@@ -122,7 +127,6 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
       return NextResponse.json({ error: "Failed to save website" }, { status: 500 })
     }
 
-    // Deduct credit
     const { error: creditError } = await adminClient
       .from("profiles")
       .update({ credits: profile.credits - 1 })
@@ -130,7 +134,6 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
 
     if (creditError) {
       console.error("Credit deduction error:", creditError)
-      // Website was saved, so we don't return an error, but log it
     }
 
     return NextResponse.json({
