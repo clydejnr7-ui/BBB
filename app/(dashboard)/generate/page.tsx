@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -36,7 +35,6 @@ const styleOptions = [
 export default function GeneratePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [credits, setCredits] = useState<number | null>(null)
-  const router = useRouter()
   const supabase = createClient()
 
   const {
@@ -90,7 +88,8 @@ export default function GeneratePage() {
       }
 
       toast.success("Website generated successfully!")
-      router.push(`/preview/${result.previewSlug}`)
+      window.open(`/preview/${result.previewSlug}`, "_blank")
+      setCredits((prev) => (prev !== null ? prev - 1 : prev))
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to generate website")
     } finally {
@@ -107,7 +106,6 @@ export default function GeneratePage() {
         </p>
       </div>
 
-      {/* Credits Warning */}
       {credits !== null && credits === 0 && (
         <Card className="border-destructive bg-destructive/5">
           <CardContent className="flex items-center gap-4 py-4">
@@ -125,7 +123,6 @@ export default function GeneratePage() {
         </Card>
       )}
 
-      {/* Credits Display */}
       {credits !== null && credits > 0 && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="flex items-center gap-4 py-4">
@@ -153,7 +150,6 @@ export default function GeneratePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Project Name */}
             <div className="space-y-2">
               <Label htmlFor="name">Project Name</Label>
               <Input
@@ -167,7 +163,6 @@ export default function GeneratePage() {
               )}
             </div>
 
-            {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -185,7 +180,6 @@ export default function GeneratePage() {
               </p>
             </div>
 
-            {/* Style Selection */}
             <div className="space-y-3">
               <Label>Style Preference</Label>
               <RadioGroup
@@ -223,7 +217,6 @@ export default function GeneratePage() {
               )}
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
               size="lg"
