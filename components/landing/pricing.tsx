@@ -86,9 +86,13 @@ export function Pricing() {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
           {plans.map((plan) => (
-            <Card 
-              key={plan.name} 
-              className={`relative flex flex-col ${plan.popular ? 'border-primary shadow-lg scale-105' : 'border-border'}`}
+            <Card
+              key={plan.name}
+              className={`relative flex flex-col ${
+                plan.popular
+                  ? "border-primary shadow-lg md:scale-105"
+                  : "border-border"
+              }`}
             >
               {plan.popular && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 px-3">
@@ -115,8 +119,8 @@ export function Pricing() {
               </CardContent>
               <CardFooter>
                 <Link href={plan.href} className="w-full">
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     variant={plan.popular ? "default" : "outline"}
                   >
                     {plan.cta}
