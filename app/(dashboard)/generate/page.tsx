@@ -73,6 +73,23 @@ export default function GeneratePage() {
       return
     }
 
+    // Open window immediately on click before any await — browsers block popups after async calls
+    const previewWindow = window.open("", "_blank")
+    if (previewWindow) {
+      previewWindow.document.write(`
+        <html>
+          <head><title>Generating your website...</title></head>
+          <body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#0d1117;font-family:sans-serif;color:#e6edf3;">
+            <div style="text-align:center">
+              <div style="font-size:48px;margin-bottom:16px">✨</div>
+              <h2 style="margin:0 0 8px">Generating your website...</h2>
+              <p style="color:#8b949e;margin:0">This usually takes 10–20 seconds</p>
+            </div>
+          </body>
+        </html>
+      `)
+    }
+
     setIsLoading(true)
     try {
       const response = await fetch("/api/generate", {
@@ -84,13 +101,17 @@ export default function GeneratePage() {
       const result = await response.json()
 
       if (!response.ok) {
+        previewWindow?.close()
         throw new Error(result.error || "Generation failed")
       }
 
       toast.success("Website generated successfully!")
-      window.open(`/preview/${result.previewSlug}`, "_blank")
+      if (previewWindow) {
+        previewWindow.location.href = `/preview/${result.previewSlug}`
+      }
       setCredits((prev) => (prev !== null ? prev - 1 : prev))
     } catch (error) {
+      previewWindow?.close()
       toast.error(error instanceof Error ? error.message : "Failed to generate website")
     } finally {
       setIsLoading(false)
