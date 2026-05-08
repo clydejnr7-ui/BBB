@@ -65,7 +65,7 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
         "X-Title": "SiteForge AI",
       },
       body: JSON.stringify({
-        model: "anthropic/claude-3.5-sonnet",
+        model: "deepseek/deepseek-v4-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Create a ${style} website for: ${name}. ${description}` }
