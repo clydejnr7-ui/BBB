@@ -1,4 +1,4 @@
-"use client"
+  "use client"
 
 import { useState, useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
@@ -15,7 +15,7 @@ import { toast } from "sonner"
 import {
   Sparkles, Loader2, Zap, AlertCircle, X, RefreshCw,
   ExternalLink, Monitor, Tablet, Smartphone, ChevronLeft,
-  Circle, Pencil, Save, Image as ImageIcon, Check,
+  Circle, Pencil, Save, Image as ImageIcon, Check, Rocket,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -193,9 +193,7 @@ const EDIT_SCRIPT = `
 function injectEditScript(html: string): string {
   if (html.includes('sf-edit-engine')) return html
   const closeBody = html.lastIndexOf('</body>')
-  if (closeBody !== -1) {
-    return html.slice(0, closeBody) + EDIT_SCRIPT + html.slice(closeBody)
-  }
+  if (closeBody !== -1) return html.slice(0, closeBody) + EDIT_SCRIPT + html.slice(closeBody)
   return html + EDIT_SCRIPT
 }
 
@@ -248,9 +246,7 @@ function TerminalLoader({ projectName }: { projectName: string }) {
         <div className="bg-[#0d1117] p-5 h-72 overflow-y-auto font-mono text-sm space-y-1">
           <p className="text-white/30 mb-3 text-xs">SiteForge AI v2.0 — Website Generator</p>
           {visibleLogs.map((log, i) => (
-            <p key={i} className={cn("leading-relaxed animate-fadeIn", log.color)}>
-              {log.text}
-            </p>
+            <p key={i} className={cn("leading-relaxed animate-fadeIn", log.color)}>{log.text}</p>
           ))}
           <p className="text-white/60">
             <span className="inline-block w-2 h-4 bg-white/60 align-middle animate-pulse" />
@@ -287,6 +283,8 @@ export default function GeneratePage() {
   const [savedOk, setSavedOk] = useState(false)
   const [imgDialog, setImgDialog] = useState<{ id: string; src: string } | null>(null)
   const [imgUrl, setImgUrl] = useState("")
+  const [deployDialog, setDeployDialog] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const prevBlobUrl = useRef<string>("")
@@ -363,6 +361,19 @@ export default function GeneratePage() {
     iframeRef.current?.contentWindow?.postMessage({ type: "sf_getHTML" }, "*")
   }
 
+  function handleDeploy() {
+    setDeployDialog(true)
+    setLinkCopied(false)
+  }
+
+  function copyDeployLink() {
+    const url = `${window.location.origin}/preview/${previewSlug}`
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2500)
+    })
+  }
+
   function applyImageReplacement() {
     if (!imgDialog || !imgUrl.trim()) return
     iframeRef.current?.contentWindow?.postMessage({
@@ -380,6 +391,7 @@ export default function GeneratePage() {
     setGeneratedHtml("")
     setBlobUrl("")
     setEditMode(false)
+    setDeployDialog(false)
 
     try {
       const response = await fetch("/api/generate", {
@@ -422,6 +434,7 @@ export default function GeneratePage() {
     runGeneration(data)
   }
 
+  // ─── Full-screen overlay ──────────────────────────────────────────────────
   if (stage === "generating" || stage === "preview") {
     return (
       <>
@@ -435,7 +448,10 @@ export default function GeneratePage() {
                 </div>
                 <span className="font-semibold text-white text-sm">SiteForge AI</span>
               </div>
-              <button onClick={() => { setStage("form"); setEditMode(false) }} className="text-white/40 hover:text-white/80 transition-colors">
+              <button
+                onClick={() => { setStage("form"); setEditMode(false) }}
+                className="text-white/40 hover:text-white/80 transition-colors"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -489,6 +505,17 @@ export default function GeneratePage() {
             <div className="px-4 py-4 border-t border-white/10 space-y-2">
               {stage === "preview" && (
                 <>
+                  {/* Deploy */}
+                  <Button
+                    size="sm"
+                    className="w-full justify-start gap-2 bg-green-600 hover:bg-green-500 text-white border-0"
+                    onClick={handleDeploy}
+                  >
+                    <Rocket className="h-3.5 w-3.5" />
+                    Deploy Site
+                  </Button>
+
+                  {/* Edit toggle */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -502,6 +529,7 @@ export default function GeneratePage() {
                     {editMode ? "Exit Edit Mode" : "Edit Content"}
                   </Button>
 
+                  {/* Save */}
                   {editMode && (
                     <Button
                       size="sm"
@@ -530,6 +558,7 @@ export default function GeneratePage() {
                     <RefreshCw className="h-3.5 w-3.5" />
                     Regenerate (1 credit)
                   </Button>
+
                   <a href={`/preview/${previewSlug}`} target="_blank" rel="noopener noreferrer">
                     <Button
                       variant="outline"
@@ -602,6 +631,63 @@ export default function GeneratePage() {
           </div>
         </div>
 
+        {/* Deploy dialog */}
+        {deployDialog && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-[#161b22] border border-white/10 rounded-xl w-full max-w-md shadow-2xl">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-white font-medium text-sm">Site Deployed</span>
+                </div>
+                <button onClick={() => setDeployDialog(false)} className="text-white/40 hover:text-white/80">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="px-5 py-5 space-y-4">
+                <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 text-center">
+                  <p className="text-green-400 text-sm font-medium mb-1">Your site is live!</p>
+                  <p className="text-white/40 text-xs">Share this link with anyone — no login required</p>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2.5">
+                  <span className="flex-1 text-white/70 text-xs font-mono truncate">
+                    {typeof window !== "undefined"
+                      ? `${window.location.origin}/preview/${previewSlug}`
+                      : `/preview/${previewSlug}`}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-white/10 text-white bg-white/5 hover:bg-white/10 gap-2"
+                    onClick={copyDeployLink}
+                  >
+                    {linkCopied ? (
+                      <><Check className="h-3.5 w-3.5 text-green-400" /> Copied!</>
+                    ) : (
+                      <><ExternalLink className="h-3.5 w-3.5" /> Copy Link</>
+                    )}
+                  </Button>
+                  <a
+                    href={`/preview/${previewSlug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1"
+                  >
+                    <Button className="w-full gap-2">
+                      <Rocket className="h-3.5 w-3.5" />
+                      Open Site
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Image replacement dialog */}
         {imgDialog && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -662,7 +748,11 @@ export default function GeneratePage() {
               </div>
 
               <div className="flex gap-2 px-5 pb-5">
-                <Button variant="outline" className="flex-1 border-white/10 text-white bg-white/5 hover:bg-white/10" onClick={() => setImgDialog(null)}>
+                <Button
+                  variant="outline"
+                  className="flex-1 border-white/10 text-white bg-white/5 hover:bg-white/10"
+                  onClick={() => setImgDialog(null)}
+                >
                   Cancel
                 </Button>
                 <Button className="flex-1" onClick={applyImageReplacement} disabled={!imgUrl.trim()}>
@@ -729,11 +819,18 @@ export default function GeneratePage() {
 
           <div className="space-y-3">
             <Label>Style Preference</Label>
-            <RadioGroup value={selectedStyle} onValueChange={(v) => setValue("style", v as GenerateForm["style"])} className="grid gap-3 sm:grid-cols-2">
+            <RadioGroup
+              value={selectedStyle}
+              onValueChange={(v) => setValue("style", v as GenerateForm["style"])}
+              className="grid gap-3 sm:grid-cols-2"
+            >
               {styleOptions.map((style) => (
                 <div key={style.value}>
                   <RadioGroupItem value={style.value} id={style.value} className="peer sr-only" />
-                  <Label htmlFor={style.value} className="flex flex-col gap-1 rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-colors">
+                  <Label
+                    htmlFor={style.value}
+                    className="flex flex-col gap-1 rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-colors"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{style.label}</span>
                       {selectedStyle === style.value && <Badge variant="secondary" className="text-xs">Selected</Badge>}
