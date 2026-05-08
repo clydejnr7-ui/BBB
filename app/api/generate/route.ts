@@ -22,11 +22,11 @@ export async function POST(request: Request) {
     const adminClient = createAdminClient()
     const { data: profile } = await adminClient
       .from("profiles")
-      .select("credits")
+      .select("credits, is_admin")
       .eq("id", user.id)
       .single()
 
-    if (!profile || profile.credits < 1) {
+    if (!profile || (!profile.is_admin && profile.credits < 1)) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 })
     }
 
@@ -79,7 +79,7 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
         "X-Title": "SiteForge AI",
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-v4-pro",
+        model: "anthropic/claude-3.5-sonnet",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Create a ${style} website for: ${name}. ${description}` }
@@ -127,13 +127,16 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
       return NextResponse.json({ error: "Failed to save website" }, { status: 500 })
     }
 
-    const { error: creditError } = await adminClient
-      .from("profiles")
-      .update({ credits: profile.credits - 1 })
-      .eq("id", user.id)
+    // Deduct credit — skip for admin accounts
+    if (!profile.is_admin) {
+      const { error: creditError } = await adminClient
+        .from("profiles")
+        .update({ credits: profile.credits - 1 })
+        .eq("id", user.id)
 
-    if (creditError) {
-      console.error("Credit deduction error:", creditError)
+      if (creditError) {
+        console.error("Credit deduction error:", creditError)
+      }
     }
 
     return NextResponse.json({
