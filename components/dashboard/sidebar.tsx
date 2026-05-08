@@ -3,15 +3,16 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { 
-  Sparkles, 
-  LayoutDashboard, 
-  Globe, 
-  BarChart3, 
+import {
+  Sparkles,
+  LayoutDashboard,
+  Globe,
+  BarChart3,
   CreditCard,
   Plus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -28,10 +29,14 @@ export function DashboardSidebar() {
     <aside className="hidden md:flex w-64 flex-col border-r bg-sidebar">
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold">SiteForge</span>
+          <Image
+            src="https://i.8upload.com/image/dfc34217333995c1/gemini-generated-image-vp2e7avp2e7avp2e.webp"
+            alt="PNG Website Builders"
+            width={32}
+            height={32}
+            className="rounded-lg object-contain"
+          />
+          <span className="text-xl font-bold">PNG Website Builders</span>
         </Link>
       </div>
 
@@ -45,9 +50,9 @@ export function DashboardSidebar() {
 
         <nav className="space-y-1">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || 
+            const isActive = pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href))
-            
+
             return (
               <Link
                 key={item.name}
