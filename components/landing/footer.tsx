@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Sparkles } from "lucide-react"
+import Image from "next/image"
 
 export function Footer() {
   return (
@@ -8,13 +8,17 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Sparkles className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold">SiteForge</span>
+              <Image
+                src="https://i.8upload.com/image/dfc34217333995c1/gemini-generated-image-vp2e7avp2e7avp2e.webp"
+                alt="PNG Website Builders"
+                width={32}
+                height={32}
+                className="rounded-lg object-contain"
+              />
+              <span className="text-xl font-bold">PNG Website Builders</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
-              Build stunning websites in seconds with the power of AI. No coding required. 
+              Build stunning websites in seconds with the power of AI. No coding required.
               Transform your ideas into reality.
             </p>
           </div>
@@ -63,7 +67,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} SiteForge. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} PNG Website Builders. All rights reserved.</p>
         </div>
       </div>
     </footer>
