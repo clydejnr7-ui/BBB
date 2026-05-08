@@ -37,21 +37,47 @@ Style: ${style}
 
 Return only valid HTML/CSS/JS (no markdown wrappers, no \`\`\`html blocks). Use Tailwind CSS via CDN (<script src="https://cdn.tailwindcss.com"></script>).
 
-IMAGES — You MUST include real images throughout the page using LoremFlickr URLs. Format:
-  https://loremflickr.com/{width}/{height}/{keyword1},{keyword2}
+IMAGES — You MUST include working images throughout the page using Picsum Photos URLs. These URLs always return real photos with no redirects.
 
-Rules for images:
-- Choose keywords that are highly relevant to the website topic and description
-- Hero section: use a large banner image (1400/700) with relevant keywords
-- Feature/service cards: use smaller images (600/400) with specific keywords per card
-- Team/about section: use portrait images (400/500) with keywords like "person,professional,portrait"
-- Gallery or testimonial sections: include additional contextual images
-- Always add loading="lazy" and a descriptive alt attribute to every img tag
-- Wrap hero images in a relative div and overlay text on top using absolute positioning and a dark overlay (bg-black/40 or similar)
+URL format: https://picsum.photos/seed/{seed}/{width}/{height}
+- Replace {seed} with any descriptive word related to the image content (e.g. "beach", "office", "food", "hero", "team1", "team2")
+- Replace {width} and {height} with pixel dimensions
+- Every seed produces a consistent, unique photo — use different seeds for different images
 
-Example image tags:
-  <img src="https://loremflickr.com/1400/700/travel,beach,tropical" alt="Tropical beach destination" loading="lazy" class="w-full h-full object-cover" />
-  <img src="https://loremflickr.com/600/400/adventure,hiking" alt="Adventure hiking" loading="lazy" class="w-full h-48 object-cover rounded-lg" />
+Required images and sizes:
+- Hero banner: 1400x700 — use seed related to the site topic (e.g. "hero-${name.toLowerCase().replace(/\s+/g, '-')}")
+- Feature/service cards: 800x500 each — use unique seeds per card (e.g. "feature1", "feature2", "feature3")
+- About/team photos: 400x500 each — use seeds like "team1", "team2", "team3"
+- Gallery images: 600x400 each — use varied seeds
+
+CRITICAL image CSS rules — every image MUST be fully visible, never clipped or broken:
+- All <img> tags MUST have: class="w-full h-full object-cover block"
+- Image containers MUST have explicit height set: use Tailwind classes like h-64, h-72, h-80, h-96, or inline style="height:400px"
+- NEVER use a container without an explicit height when it holds an image
+- Hero image container: use style="height:600px" with class="relative overflow-hidden w-full"
+- Card image containers: always use class="w-full overflow-hidden" with explicit height like h-56 or h-64
+- NEVER use max-h or min-h alone — always pair with an explicit h- class or style height
+- Add loading="lazy" and descriptive alt text to every img tag
+
+Example hero section:
+<section class="relative w-full overflow-hidden" style="height:600px">
+  <img src="https://picsum.photos/seed/hero-travel/1400/700" alt="Travel hero" loading="lazy" class="w-full h-full object-cover block" />
+  <div class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-6">
+    <h1 class="text-5xl font-bold mb-4">Your Headline Here</h1>
+    <p class="text-xl max-w-2xl">Supporting text goes here</p>
+  </div>
+</section>
+
+Example card with image:
+<div class="rounded-xl overflow-hidden shadow-lg bg-white">
+  <div class="w-full overflow-hidden" style="height:220px">
+    <img src="https://picsum.photos/seed/feature1/800/500" alt="Feature one" loading="lazy" class="w-full h-full object-cover block" />
+  </div>
+  <div class="p-6">
+    <h3 class="text-xl font-semibold mb-2">Card Title</h3>
+    <p class="text-gray-600">Card description text.</p>
+  </div>
+</div>
 
 Requirements:
 - The design must be modern, accessible, and visually stunning
