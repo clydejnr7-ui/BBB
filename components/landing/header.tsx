@@ -14,8 +14,8 @@ export function Header() {
     <>
       {/* Announcement bar */}
       <div className="fixed top-0 left-0 right-0 z-[60] bg-primary text-primary-foreground text-center py-2 px-3 text-xs font-medium flex items-center justify-center gap-1.5 flex-wrap">
-        <span className="hidden sm:inline">🎉 Now powered by GPT-4o — smarter websites, faster generation</span>
-        <span className="sm:hidden">🎉 Now powered by GPT-4o</span>
+        <span className="hidden sm:inline">🎉 Now powered by HatwokMan Agent — smarter websites, faster generation</span>
+        <span className="sm:hidden">🎉 Now powered by HatwokMan Agent</span>
         <Link href="/auth/signup" className="inline-flex items-center gap-0.5 underline underline-offset-2 hover:no-underline font-semibold whitespace-nowrap">
           Try free <ArrowRight className="h-3 w-3" />
         </Link>
