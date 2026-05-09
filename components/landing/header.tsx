@@ -34,7 +34,7 @@ export function Header() {
                 className="rounded-lg object-contain"
               />
               <span className="text-base sm:text-lg font-bold tracking-tight whitespace-nowrap">
-               PNG Website Builders
+                PNG Website Builders
               </span>
             </Link>
 
