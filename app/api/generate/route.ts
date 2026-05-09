@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 import { nanoid } from "nanoid"
 
+export const maxDuration = 60
+
 // ─────────────────────────────────────────────────────────────────────────────
 // THEME DEFINITIONS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -286,6 +288,8 @@ tailwind.config={theme:{extend:{colors:{
 // ROUTE HANDLER
 // ─────────────────────────────────────────────────────────────────────────────
 
+const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1"
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -546,7 +550,7 @@ img { display: block; max-width: 100%; }
 .avatar {
   width: 48px; height: 48px;
   border-radius: 50%;
-  display: flex; align-items: center; justify-center: center;
+  display: flex; align-items: center;
   font-weight: 700; font-size: 18px; color: #fff;
   background: var(--gradient);
   flex-shrink: 0;
@@ -759,7 +763,7 @@ QUALITY CHECKLIST — verify before outputting
 ✓ All scripts are before </body>
 ✓ No truncation — output the COMPLETE HTML file`
 
-    const response = await fetch(`${process.env.OPENROUTER_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -768,7 +772,7 @@ QUALITY CHECKLIST — verify before outputting
         "X-Title": "PNG Website Builders",
       },
       body: JSON.stringify({
-        model: "anthropic/claude-3.5-sonnet",
+        model: "google/gemini-2.0-flash-001",
         messages: [
           { role: "system", content: systemPrompt },
           {
@@ -782,11 +786,13 @@ QUALITY CHECKLIST — verify before outputting
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
-      console.error("OpenRouter error:", response.status, errorData)
+      const errorText = await response.text()
+      let errorData: { error?: string } = {}
+      try { errorData = JSON.parse(errorText) } catch { /* non-JSON body */ }
+      console.error("OpenRouter error:", response.status, errorText)
       if (response.status === 429) return NextResponse.json({ error: "AI is rate limited. Please wait 30 seconds and try again." }, { status: 429 })
       if (response.status === 503 || response.status === 502) return NextResponse.json({ error: "AI service is temporarily unavailable. Please try again shortly." }, { status: 503 })
-      return NextResponse.json({ error: "Failed to generate website" }, { status: 500 })
+      return NextResponse.json({ error: errorData.error || "Failed to generate website" }, { status: 500 })
     }
 
     const data = await response.json()
@@ -805,9 +811,11 @@ QUALITY CHECKLIST — verify before outputting
 
     const previewSlug = nanoid(10)
 
-    const { error: insertError } = await adminClient
+    const { data: insertedSite, error: insertError } = await adminClient
       .from("generated_sites")
       .insert({ user_id: user.id, name, description, style, html_code: cleanHtml, preview_slug: previewSlug, credits_used: 1 })
+      .select("id")
+      .single()
 
     if (insertError) {
       console.error("Database error:", insertError)
@@ -820,7 +828,7 @@ QUALITY CHECKLIST — verify before outputting
       if (creditError) console.error("Credit deduction error:", creditError)
     }
 
-    return NextResponse.json({ success: true, previewSlug, message: "Website generated successfully" })
+    return NextResponse.json({ success: true, previewSlug, siteId: insertedSite?.id || "", message: "Website generated successfully" })
   } catch (error) {
     console.error("Generation error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
