@@ -18,7 +18,7 @@ const styleThemes: Record<string, {
     primary: "#6366f1", primaryDark: "#4f46e5", accent: "#f59e0b",
     bg: "#0a0a0f", surface: "#13131a", text: "#f8fafc", textMuted: "#94a3b8",
     gradient: "linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7)",
-    heroOverlay: "linear-gradient(to bottom, rgba(10,10,15,0.5) 0%, rgba(10,10,15,0.8) 100%)",
+    heroOverlay: "linear-gradient(to bottom, rgba(10,10,15,0.45) 0%, rgba(10,10,15,0.82) 100%)",
     navBg: "rgba(10,10,15,0.85)",
   },
   minimal: {
@@ -27,7 +27,7 @@ const styleThemes: Record<string, {
     primary: "#1a1a1a", primaryDark: "#000000", accent: "#c9a84c",
     bg: "#fafaf8", surface: "#ffffff", text: "#1a1a1a", textMuted: "#6b7280",
     gradient: "linear-gradient(135deg, #1a1a1a, #404040)",
-    heroOverlay: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.65) 100%)",
+    heroOverlay: "linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.62) 100%)",
     navBg: "rgba(250,250,248,0.92)",
   },
   startup: {
@@ -36,7 +36,7 @@ const styleThemes: Record<string, {
     primary: "#0ea5e9", primaryDark: "#0284c7", accent: "#10b981",
     bg: "#020617", surface: "#0f172a", text: "#f1f5f9", textMuted: "#64748b",
     gradient: "linear-gradient(135deg, #0ea5e9, #6366f1, #8b5cf6)",
-    heroOverlay: "linear-gradient(to bottom, rgba(2,6,23,0.4) 0%, rgba(2,6,23,0.85) 100%)",
+    heroOverlay: "linear-gradient(to bottom, rgba(2,6,23,0.35) 0%, rgba(2,6,23,0.82) 100%)",
     navBg: "rgba(2,6,23,0.88)",
   },
   creative: {
@@ -45,7 +45,7 @@ const styleThemes: Record<string, {
     primary: "#ec4899", primaryDark: "#be185d", accent: "#f97316",
     bg: "#0c0c0c", surface: "#1a1a1a", text: "#fafafa", textMuted: "#a1a1aa",
     gradient: "linear-gradient(135deg, #ec4899, #f97316, #eab308)",
-    heroOverlay: "linear-gradient(to bottom, rgba(12,12,12,0.3) 0%, rgba(12,12,12,0.8) 100%)",
+    heroOverlay: "linear-gradient(to bottom, rgba(12,12,12,0.28) 0%, rgba(12,12,12,0.78) 100%)",
     navBg: "rgba(12,12,12,0.88)",
   },
   corporate: {
@@ -54,13 +54,13 @@ const styleThemes: Record<string, {
     primary: "#1e40af", primaryDark: "#1e3a8a", accent: "#0891b2",
     bg: "#f8fafc", surface: "#ffffff", text: "#0f172a", textMuted: "#475569",
     gradient: "linear-gradient(135deg, #1e40af, #1e3a8a)",
-    heroOverlay: "linear-gradient(to bottom, rgba(15,23,42,0.5) 0%, rgba(15,23,42,0.75) 100%)",
+    heroOverlay: "linear-gradient(to bottom, rgba(15,23,42,0.45) 0%, rgba(15,23,42,0.72) 100%)",
     navBg: "rgba(248,250,252,0.95)",
   },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IMAGE FETCHING — Pexels → Pixabay → Openverse → Picsum fallback
+// IMAGE FETCHING
 // ─────────────────────────────────────────────────────────────────────────────
 
 function extractSearchQuery(name: string, description: string): string {
@@ -91,7 +91,6 @@ async function tryFetch(url: string, headers: Record<string, string> = {}): Prom
 async function fetchImages(name: string, description: string, slug: string, count: number): Promise<string[]> {
   const query = extractSearchQuery(name, description)
 
-  // 1. Pexels
   if (process.env.PEXELS_API_KEY) {
     const res = await tryFetch(
       `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${count}&orientation=landscape&size=large`,
@@ -104,7 +103,6 @@ async function fetchImages(name: string, description: string, slug: string, coun
     }
   }
 
-  // 2. Pixabay
   if (process.env.PIXABAY_API_KEY) {
     const res = await tryFetch(
       `https://pixabay.com/api/?key=${process.env.PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=${count}&safesearch=true&min_width=1200`
@@ -116,7 +114,6 @@ async function fetchImages(name: string, description: string, slug: string, coun
     }
   }
 
-  // 3. Openverse (no key)
   const ovRes = await tryFetch(
     `https://api.openverse.org/v1/images/?q=${encodeURIComponent(query)}&page_size=${count}&license_type=commercial,modification`
   )
@@ -126,7 +123,6 @@ async function fetchImages(name: string, description: string, slug: string, coun
     if (urls.length >= Math.ceil(count / 2)) return urls
   }
 
-  // 4. Picsum fallback
   return Array.from({ length: count }, (_, i) => `https://picsum.photos/seed/${slug}-${i}/1200/800`)
 }
 
@@ -169,14 +165,8 @@ function forceRealImages(html: string, imageSet: ImageSet): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TRUSTED_IMAGE_DOMAINS = [
-  "picsum.photos",
-  "images.pexels.com",
-  "cdn.pixabay.com",
-  "pixabay.com",
-  "live.staticflickr.com",
-  "upload.wikimedia.org",
-  "wordpress.org",
-  "openverse.org",
+  "picsum.photos","images.pexels.com","cdn.pixabay.com","pixabay.com",
+  "live.staticflickr.com","upload.wikimedia.org","wordpress.org","openverse.org",
 ]
 
 async function fixBrokenImages(html: string, slug: string): Promise<string> {
@@ -267,16 +257,14 @@ tailwind.config={theme:{extend:{colors:{
     }
   )
 
-  // Fix Alpine.js mobile menu: add x-cloak so dropdown is hidden until Alpine initialises
+  // Fix Alpine.js mobile menu flash
   if (!s.includes('[x-cloak]')) {
     s = s.replace('<style>', '<style>[x-cloak]{display:none!important}')
   }
-  // Add x-cloak to any div/nav/ul using x-show so mobile menus don't flash open
   s = s.replace(/(<(?:div|nav|ul)\b[^>]*\bx-show\b[^>]*>)/g, (match) => {
     if (match.includes('x-cloak')) return match
     return match.replace(/^<(div|nav|ul)/, '<$1 x-cloak')
   })
-  // Force mobile menu open state to false if AI accidentally defaulted it to true
   s = s.replace(/x-data=["']\{([^"']*)\bopen\s*:\s*true([^"']*)\}["']/g,
     (match) => match.replace('open: true', 'open: false').replace('open:true', 'open:false')
   )
@@ -316,183 +304,460 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 })
 
     const theme = styleThemes[style] || styleThemes.modern
-    const slug = name.toLowerCase().replace(/\s+/g, "-")
+    const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")
 
     const imageSet = await fetchImageSet(name, description, slug)
 
-    const systemPrompt = `You are a world-class UI/UX designer and senior frontend developer at a top-tier agency. Produce a stunning, professional, premium website. Every site should look like it cost $50,000 to build.
+    const systemPrompt = `You are a world-class senior frontend developer at a $500M/yr digital agency. Your job is to write ONE complete, self-contained HTML file that looks like a $50,000 custom website.
 
-PROJECT:
-- Name: ${name}
-- Description: ${description}
-- Style: ${style}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROJECT BRIEF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Business name: ${name}
+Description:   ${description}
+Visual style:  ${style}
 
-OUTPUT: Return ONLY a complete HTML document starting with <!DOCTYPE html>. No markdown, no code fences, no explanation.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT RULE — NON-NEGOTIABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Return ONLY the raw HTML starting with <!DOCTYPE html>
+NO markdown. NO code fences. NO explanation. NO truncation.
+You MUST output ALL 9 sections listed below — no skipping, no placeholders.
 
-═══════════════════════════════════════════
-HEAD — exact order matters
-═══════════════════════════════════════════
-1. Meta tags (charset, viewport, description, title)
-2. Google Fonts: <link href="https://fonts.googleapis.com/css2?family=${theme.fonts}&display=swap" rel="stylesheet">
-3. Tailwind config BEFORE CDN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HEAD — copy this EXACTLY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="[write a real 1-sentence description for ${name}]">
+<title>${name}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=${theme.fonts}&display=swap" rel="stylesheet">
 <script>
   tailwind.config = {
     theme: { extend: { colors: {
-      primary: '${theme.primary}', 'primary-dark': '${theme.primaryDark}',
-      accent: '${theme.accent}', surface: '${theme.surface}',
-      'theme-bg': '${theme.bg}', 'theme-text': '${theme.text}', 'theme-muted': '${theme.textMuted}',
+      primary: '${theme.primary}',
+      'primary-dark': '${theme.primaryDark}',
+      accent: '${theme.accent}',
+      surface: '${theme.surface}',
+      'theme-bg': '${theme.bg}',
+      'theme-text': '${theme.text}',
+      'theme-muted': '${theme.textMuted}',
     }}}
   }
 </script>
-4. Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script>
-5. Alpine.js: <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-6. <style> block — MUST include: [x-cloak] { display: none !important; }
-
-═══════════════════════════════════════════
-DESIGN SYSTEM
-═══════════════════════════════════════════
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+[x-cloak] { display: none !important; }
 :root {
-  --primary: ${theme.primary}; --primary-dark: ${theme.primaryDark}; --accent: ${theme.accent};
-  --bg: ${theme.bg}; --surface: ${theme.surface}; --text: ${theme.text}; --text-muted: ${theme.textMuted};
-  --heading-font: ${theme.headingFont}; --body-font: ${theme.bodyFont}; --gradient: ${theme.gradient};
-  --radius: 12px; --radius-lg: 20px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.12); --shadow-lg: 0 12px 48px rgba(0,0,0,0.2);
-  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --primary: ${theme.primary};
+  --primary-dark: ${theme.primaryDark};
+  --accent: ${theme.accent};
+  --bg: ${theme.bg};
+  --surface: ${theme.surface};
+  --text: ${theme.text};
+  --text-muted: ${theme.textMuted};
+  --heading-font: ${theme.headingFont};
+  --body-font: ${theme.bodyFont};
+  --gradient: ${theme.gradient};
+  --radius: 12px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow: 0 4px 24px rgba(0,0,0,0.14);
+  --shadow-lg: 0 12px 48px rgba(0,0,0,0.22);
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
 }
-body { font-family: var(--body-font); background: var(--bg); color: var(--text); scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-h1,h2,h3,h4 { font-family: var(--heading-font); }
-.fade-in { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
-.fade-in.visible { opacity: 1; transform: translateY(0); }
-.delay-1 { transition-delay: 0.1s; } .delay-2 { transition-delay: 0.2s; } .delay-3 { transition-delay: 0.3s; } .delay-4 { transition-delay: 0.4s; }
-.gradient-text { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline-block; }
-.accent-bar { display: block; width: 60px; height: 3px; background: var(--gradient); border-radius: 9999px; margin: 12px auto 0; }
-.hover-lift { transition: transform var(--transition), box-shadow var(--transition); }
-.hover-lift:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); }
-.nav-link { position: relative; }
-.nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: var(--primary); transition: width 0.3s ease; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: var(--body-font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+h1, h2, h3, h4, h5, h6 { font-family: var(--heading-font); line-height: 1.15; }
+a { text-decoration: none; color: inherit; }
+img { display: block; max-width: 100%; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.section { padding: 96px 0; }
+.section-sm { padding: 72px 0; }
+
+/* Eyebrow label */
+.eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+/* Section heading */
+.section-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+.section-subtitle {
+  font-size: 1.125rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  line-height: 1.7;
+  margin-bottom: 48px;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Accent underline bar */
+.accent-bar {
+  display: block;
+  width: 56px;
+  height: 4px;
+  background: var(--gradient);
+  border-radius: 9999px;
+  margin: 14px 0 40px;
+}
+.accent-bar.center { margin: 14px auto 40px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  border: none;
+  transition: transform var(--transition), opacity var(--transition), box-shadow var(--transition);
+  white-space: nowrap;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn-primary {
+  background: var(--gradient);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+}
+.btn-primary:hover { opacity: 0.92; box-shadow: 0 8px 30px rgba(99,102,241,0.45); }
+.btn-outline {
+  background: transparent;
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.35);
+  backdrop-filter: blur(8px);
+}
+.btn-outline:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.6); }
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+
+/* Feature icon */
+.feature-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+/* Star rating */
+.stars { color: #f59e0b; font-size: 18px; letter-spacing: 2px; margin-bottom: 12px; }
+
+/* Counter */
+.stat-number {
+  font-family: var(--heading-font);
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 900;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+/* Fade-in animation */
+.fade-in {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.fade-in.visible { opacity: 1; transform: none; }
+.delay-1 { transition-delay: 0.1s; }
+.delay-2 { transition-delay: 0.2s; }
+.delay-3 { transition-delay: 0.3s; }
+.delay-4 { transition-delay: 0.4s; }
+
+/* Nav link underline */
+.nav-link { position: relative; transition: color var(--transition); }
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -3px; left: 0;
+  width: 0; height: 2px;
+  background: var(--primary);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
 .nav-link:hover::after { width: 100%; }
-.btn-primary { background: var(--gradient); color: white; border: none; border-radius: 9999px; padding: 14px 32px; font-weight: 600; cursor: pointer; transition: transform var(--transition), opacity var(--transition); }
-.btn-primary:hover { transform: scale(1.05); opacity: 0.92; }
-.btn-ghost { border: 2px solid rgba(255,255,255,0.35); backdrop-filter: blur(8px); color: white; border-radius: 9999px; padding: 14px 32px; font-weight: 600; cursor: pointer; transition: all var(--transition); }
-.btn-ghost:hover { background: rgba(255,255,255,0.12); }
 
-═══════════════════════════════════════════
-COLOR CLASSES
-═══════════════════════════════════════════
-ONLY use: text-primary, text-accent, text-theme-muted, text-theme-text, bg-primary, bg-surface, bg-theme-bg, border-primary
-FORBIDDEN: ✗ text-muted ✗ text-text-muted ✗ bg-bg ✗ bg-muted ✗ border-muted
+/* Gallery caption */
+.gallery-item { position: relative; overflow: hidden; border-radius: var(--radius-lg); }
+.gallery-item img { transition: transform 0.5s ease; width: 100%; height: 100%; object-fit: cover; }
+.gallery-item:hover img { transform: scale(1.06); }
+.gallery-caption {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%);
+  display: flex; align-items: flex-end; padding: 20px;
+  opacity: 0; transition: opacity 0.3s ease;
+}
+.gallery-item:hover .gallery-caption { opacity: 1; }
 
-═══════════════════════════════════════════
-IMAGES — use picsum.photos for ALL images
-Use unique seeds. Format: https://picsum.photos/seed/{descriptive-seed}/WIDTH/HEIGHT
-Suggested seeds for "${name}":
-- Hero:          https://picsum.photos/seed/${slug}-hero/1920/1080
-- Feature 1:     https://picsum.photos/seed/${slug}-f1/800/600
-- Feature 2:     https://picsum.photos/seed/${slug}-f2/800/600
-- Feature 3:     https://picsum.photos/seed/${slug}-f3/800/600
-- Feature 4:     https://picsum.photos/seed/${slug}-f4/800/600
-- Gallery large: https://picsum.photos/seed/${slug}-g1/1200/800
-- Gallery sm 1:  https://picsum.photos/seed/${slug}-g2/800/600
-- Gallery sm 2:  https://picsum.photos/seed/${slug}-g3/800/600
-- Gallery sm 3:  https://picsum.photos/seed/${slug}-g4/800/600
+/* Testimonial avatar */
+.avatar {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-center: center;
+  font-weight: 700; font-size: 18px; color: #fff;
+  background: var(--gradient);
+  flex-shrink: 0;
+  justify-content: center;
+}
 
-Image CSS rules:
-- Every <img>: class="w-full h-full object-cover block"
-- Every image container: explicit height ALWAYS
-- Hero: style="height:100vh" class="relative w-full overflow-hidden"
-- Cards: style="height:240px" class="w-full overflow-hidden"
-- Gallery large: style="height:480px" | small: style="height:230px"
-- loading="lazy" on every image except hero
+/* Scroll indicator */
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+.scroll-indicator { animation: bounce 1.6s ease-in-out infinite; }
 
-═══════════════════════════════════════════
-REQUIRED SECTIONS (8 total)
-═══════════════════════════════════════════
+/* Responsive grid helpers */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+@media (max-width: 900px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .section { padding: 72px 0; }
+}
+@media (max-width: 600px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .section { padding: 56px 0; }
+  .section-title { font-size: 1.875rem; }
+  .btn { padding: 12px 24px; font-size: 0.875rem; }
+}
+</style>
+</head>
 
-1. NAVBAR — fixed, glass morphism, Alpine.js mobile menu
-   style="position:fixed;top:0;width:100%;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:${theme.navBg};z-index:9999"
-   MOBILE MENU RULES — CRITICAL:
-   - Hamburger button: class="md:hidden" — ONLY visible on mobile
-   - Desktop nav links: class="hidden md:flex" — ONLY visible on desktop
-   - Mobile dropdown div: x-show="open" x-cloak — starts hidden, shown only when hamburger clicked
-   - x-data MUST be: x-data="{ open: false }" — never true
-   - NEVER add transform, filter, will-change, or isolation to the hero section or its wrapper
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIRED SECTIONS — ALL 9 ARE MANDATORY
+Write each section in full. No placeholder text. All content must be relevant to "${name}" and "${description}".
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-2. HERO — full viewport, NO fade-in
-   - Full-screen image height:100vh
-   - Overlay: style="position:absolute;inset:0;background:${theme.heroOverlay}"
-   - text-6xl md:text-8xl font-black with gradient-text on key words
-   - btn-primary + btn-ghost buttons
-   - Bouncing scroll arrow
+════════════════════════════════════════
+SECTION 1: NAVBAR
+════════════════════════════════════════
+- Fixed at top, glass morphism (backdrop-filter blur), z-index 9999
+- Left: logo (brand name in heading font + optional SVG icon)
+- Center/Right desktop: 5 nav links (Home, About, Services, Gallery, Contact) + CTA button
+- Mobile: hamburger using Alpine.js x-data="{ open: false }"
+- Hamburger button: class="md:hidden" ONLY
+- Desktop links container: class="hidden md:flex items-center gap-8"
+- Mobile dropdown: x-show="open" x-cloak — links stack vertically
+- NEVER apply transform/filter/will-change to hero or its wrappers
+- Style: style="position:fixed;top:0;left:0;right:0;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:${theme.navBg};z-index:9999;border-bottom:1px solid rgba(255,255,255,0.08);"
 
-3. STATS — 4 animated counters, contrasting bg
+════════════════════════════════════════
+SECTION 2: HERO (full viewport, NO fade-in on hero text)
+════════════════════════════════════════
+- Outer: style="position:relative;width:100%;height:100vh;overflow:hidden;margin-top:0"
+- Image: <img src="https://picsum.photos/seed/${slug}-hero/1920/1080" alt="Hero" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;">
+- Overlay: <div style="position:absolute;inset:0;background:${theme.heroOverlay}"></div>
+- Content: position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;z-index:2
+- H1: clamp(3rem,7vw,5.5rem), font-weight:900, letter-spacing:-0.03em, color:#fff, margin-bottom:24px. Key words get gradient-text class
+- Subheading: font-size:1.25rem, color:rgba(255,255,255,0.8), max-width:600px, margin:0 auto 40px
+- 2 buttons: btn btn-primary + btn btn-outline side by side (flex gap-4 justify-center flex-wrap)
+- Scroll arrow at bottom: position:absolute;bottom:32px;left:50%;transform:translateX(-50%)
 
-4. FEATURES — 4 cards, fade-in delay-1 through delay-4, hover-lift
+════════════════════════════════════════
+SECTION 3: STATS (4 animated counters)
+════════════════════════════════════════
+- Background contrasts with hero (use var(--surface) or a solid color)
+- 4 stat blocks in a 4-column grid, each with:
+  • <div class="stat-number counter" data-target="[NUMBER]" data-suffix="[+/%/k]">0</div>
+  • Bold label below
+  • Optional small description
+- Pick realistic numbers relevant to "${name}"
 
-5. GALLERY — 1 large left + 3 small right, group hover captions
+════════════════════════════════════════
+SECTION 4: ABOUT / INTRO
+════════════════════════════════════════
+- 2-column layout: left = text (eyebrow, h2, body copy 2–3 paragraphs, CTA button), right = image
+- Image: https://picsum.photos/seed/${slug}-about/800/600  height: 480px, border-radius var(--radius-lg)
+- Write genuine copy about the business
 
-6. TESTIMONIALS — 3 cards, quote SVG, 5 stars, gradient avatar initials
+════════════════════════════════════════
+SECTION 5: FEATURES / SERVICES (4 cards)
+════════════════════════════════════════
+- Centered header: eyebrow + h2 + accent-bar.center + subtitle
+- 4 cards in a 4-column grid (responsive to 2-col then 1-col)
+- Each card has:
+  • Feature icon div with an emoji or SVG inside
+  • h3 title (relevant service/feature)
+  • p description (2–3 real sentences)
+- Cards have fade-in delay-1 through delay-4
+- Images for cards: https://picsum.photos/seed/${slug}-f1/600/400 etc.
 
-7. CTA — style="background:var(--gradient)", white text + button
+════════════════════════════════════════
+SECTION 6: GALLERY (1 large + 3 small)
+════════════════════════════════════════
+- Section background: use surface color
+- Centered header
+- CSS Grid layout:
+  Left column (60% wide): 1 large gallery-item, height: 520px
+  Right column (40% wide): 3 stacked gallery-items, each height: 160px, gap 12px
+- Images:
+  Large:  https://picsum.photos/seed/${slug}-g1/900/600
+  Small1: https://picsum.photos/seed/${slug}-g2/600/400
+  Small2: https://picsum.photos/seed/${slug}-g3/600/400
+  Small3: https://picsum.photos/seed/${slug}-g4/600/400
+- Each gallery-item has a gallery-caption div with a short white label
 
-8. FOOTER — 4-col dark, bottom bar "© 2025 ${name}" + "Built with PNG Website Builders"
-   Social icons — copy these EXACT SVGs, each inside:
-   <a href="#" class="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white/60 transition-colors">
+════════════════════════════════════════
+SECTION 7: TESTIMONIALS (3 cards)
+════════════════════════════════════════
+- Centered header
+- 3-column card grid
+- Each card (bg: var(--surface), padding 32px, border-radius var(--radius-lg)):
+  • Opening quote SVG icon (large, gradient color, 40px)
+  • Stars: ★★★★★
+  • Quote text (2–3 sentences, genuine-sounding)
+  • Bottom: avatar div + name + title/company
+- Write 3 completely different reviewers with different names, roles, companies
 
-   Facebook:
-   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+════════════════════════════════════════
+SECTION 8: CALL TO ACTION
+════════════════════════════════════════
+- Full-width band: style="background:var(--gradient);padding:96px 24px;text-align:center"
+- Large white heading (clamp 2rem to 3.5rem)
+- White subtext paragraph
+- 1–2 white/outline buttons
+- Optional decorative background elements (CSS circles, blurs)
 
-   X (Twitter):
-   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+════════════════════════════════════════
+SECTION 9: FOOTER
+════════════════════════════════════════
+- Dark background (var(--bg) or #0a0a0f)
+- 4-column grid: Brand column + 3 link columns (Services, Company, Contact)
+- Brand column: logo + 2-sentence description + social icons row
+- Social icons (Facebook, X, Instagram, LinkedIn, YouTube) — use the exact SVGs below:
+  Wrap each in: <a href="#" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.5);transition:all 0.2s;text-decoration:none;" onmouseover="this.style.color='#fff';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.color='rgba(255,255,255,0.5)';this.style.borderColor='rgba(255,255,255,0.15)'">
 
-   Instagram:
-   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+  Facebook:
+  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
 
-   LinkedIn:
-   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+  X (Twitter):
+  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
 
-   YouTube:
-   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/></svg>
+  Instagram:
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
 
-═══════════════════════════════════════════
-SCRIPTS before </body>
-═══════════════════════════════════════════
+  LinkedIn:
+  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+
+  YouTube:
+  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/></svg>
+
+- Link columns: 5 links each (use real-sounding anchor tags with href="#")
+- Bottom bar: border-top 1px solid rgba(255,255,255,0.08), flex row, "© 2025 ${name}. All rights reserved." + "Built with PNG Website Builders"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCRIPTS — place before </body>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 <script>
-  const revealObs = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) { entry.target.classList.add('visible'); revealObs.unobserve(entry.target); }
-    });
-  }, { threshold: 0.05 });
-  document.querySelectorAll('.fade-in').forEach(el => {
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight) { el.classList.add('visible'); } else { revealObs.observe(el); }
+// Intersection Observer for fade-in
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
   });
-  const navbar = document.querySelector('nav');
-  if (navbar) { window.addEventListener('scroll', () => { navbar.style.boxShadow = window.scrollY > 60 ? '0 4px 30px rgba(0,0,0,0.25)' : 'none'; }); }
-  document.querySelectorAll('.counter').forEach(el => {
-    const target = parseInt(el.getAttribute('data-target') || '0');
-    const suffix = el.getAttribute('data-suffix') || '';
-    const step = target / 120; let current = 0;
-    const cObs = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        const timer = setInterval(() => { current += step; if (current >= target) { current = target; clearInterval(timer); } el.textContent = Math.floor(current).toLocaleString() + suffix; }, 16);
-        cObs.unobserve(el);
-      }
-    });
-    cObs.observe(el);
-  });
+}, { threshold: 0.08 });
+document.querySelectorAll('.fade-in').forEach(el => {
+  if (el.getBoundingClientRect().top < window.innerHeight) {
+    el.classList.add('visible');
+  } else {
+    io.observe(el);
+  }
+});
+
+// Navbar scroll shadow
+const navbar = document.querySelector('nav') || document.querySelector('[data-nav]');
+if (navbar) {
+  window.addEventListener('scroll', () => {
+    navbar.style.boxShadow = window.scrollY > 50 ? '0 4px 32px rgba(0,0,0,0.28)' : 'none';
+  }, { passive: true });
+}
+
+// Animated counters
+document.querySelectorAll('.counter').forEach(el => {
+  const target = parseInt(el.dataset.target || '0', 10);
+  const suffix = el.dataset.suffix || '';
+  const duration = 1800;
+  const step = target / (duration / 16);
+  let current = 0;
+  const cio = new IntersectionObserver(([entry]) => {
+    if (!entry.isIntersecting) return;
+    cio.disconnect();
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= target) { current = target; clearInterval(timer); }
+      el.textContent = Math.floor(current).toLocaleString() + suffix;
+    }, 16);
+  }, { threshold: 0.5 });
+  cio.observe(el);
+});
 </script>
 
-═══════════════════════════════════════════
-PREMIUM QUALITY RULES
-═══════════════════════════════════════════
-- Section padding: py-24 minimum (py-32 for hero and CTA)
-- All content: max-w-7xl mx-auto px-6
-- Every section has an eyebrow label (text-xs uppercase tracking-widest font-semibold text-accent mb-3)
-- Every section subtitle followed by: <span class="accent-bar"></span>
-- Section headings: text-4xl md:text-5xl font-black tracking-tight
-- Make it so impressive the user's first reaction is "wow"
-
-Return the COMPLETE HTML document starting with <!DOCTYPE html>.`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUALITY CHECKLIST — verify before outputting
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ All 9 sections present and fully written (no "Lorem ipsum", no "Coming soon")
+✓ All copy is specific to "${name}" and "${description}"
+✓ Every <img> has: src, alt, style or class with explicit width/height/object-fit
+✓ Hero is exactly 100vh, overlay present, text visible
+✓ Navbar is fixed (position:fixed), z-index 9999, hamburger menu uses x-data="{open:false}"
+✓ Stats have data-target and data-suffix on .counter elements
+✓ Gallery has large image left + 3 small right
+✓ 3 testimonial cards with different real-sounding names
+✓ CTA section uses the gradient background
+✓ Footer has 4 columns + social icons + bottom bar
+✓ All scripts are before </body>
+✓ No truncation — output the COMPLETE HTML file`
 
     const response = await fetch(`${process.env.OPENROUTER_BASE_URL}/chat/completions`, {
       method: "POST",
@@ -503,14 +768,16 @@ Return the COMPLETE HTML document starting with <!DOCTYPE html>.`
         "X-Title": "PNG Website Builders",
       },
       body: JSON.stringify({
-        model: "openrouter/auto",
+        model: "anthropic/claude-3.5-sonnet",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Create a stunning, premium ${style} website for: ${name}. ${description}` },
+          {
+            role: "user",
+            content: `Build the complete premium website for "${name}". Description: ${description}. Style: ${style}. Output the full HTML now — all 9 sections, no truncation, no placeholders.`,
+          },
         ],
         max_tokens: 16000,
-        temperature: 0.65,
-        route: "fallback",
+        temperature: 0.55,
       }),
     })
 
