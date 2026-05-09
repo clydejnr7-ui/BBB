@@ -3,6 +3,10 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 import { nanoid } from "nanoid"
 
+// ─────────────────────────────────────────────────────────────────────────────
+// THEME DEFINITIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
 const styleThemes: Record<string, {
   fonts: string
   headingFont: string
@@ -95,6 +99,160 @@ const styleThemes: Record<string, {
   },
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BROKEN IMAGE FIXER
+// Checks every <img> src in the HTML concurrently and replaces non-200 URLs
+// with guaranteed Picsum fallbacks. Capped at 5 seconds total.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function fixBrokenImages(html: string, slug: string): Promise<string> {
+  const imgRegex = /<img[^>]+src="([^"]+)"[^>]*/g
+  const matches = [...html.matchAll(imgRegex)]
+  if (matches.length === 0) return html
+
+  // Deduplicate URLs to avoid redundant checks
+  const uniqueUrls = [...new Set(matches.map(m => m[1]))]
+
+  const timeoutMs = 5000
+  const checkUrl = async (url: string): Promise<{ url: string; ok: boolean }> => {
+    // Picsum URLs are always reliable — skip the network check
+    if (url.includes("picsum.photos")) return { url, ok: true }
+    try {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 3000)
+      const res = await fetch(url, {
+        method: "HEAD",
+        signal: controller.signal,
+        redirect: "follow",
+      })
+      clearTimeout(timer)
+      return { url, ok: res.ok }
+    } catch {
+      return { url, ok: false }
+    }
+  }
+
+  // Run all checks with an overall timeout
+  const results = await Promise.race([
+    Promise.all(uniqueUrls.map(checkUrl)),
+    new Promise<{ url: string; ok: boolean }[]>((resolve) =>
+      setTimeout(() => resolve(uniqueUrls.map(u => ({ url: u, ok: true }))), timeoutMs)
+    ),
+  ])
+
+  const broken = new Set(results.filter(r => !r.ok).map(r => r.url))
+  if (broken.size === 0) return html
+
+  let fixed = html
+  let i = 0
+  for (const url of broken) {
+    const fallback = `https://picsum.photos/seed/${slug}-fb${i}/800/600`
+    // Replace all occurrences of this broken URL
+    fixed = fixed.split(url).join(fallback)
+    i++
+  }
+
+  return fixed
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HTML SANITIZER
+// Fixes common AI output mistakes after generation, before saving to DB.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function sanitizeGeneratedHtml(html: string, theme: typeof styleThemes[string]): string {
+  let s = html
+
+  // ── Fix 1: Bad Tailwind color class names ────────────────────────────────
+  const classFixes: [RegExp, string][] = [
+    [/\btext-text-muted\b/g,          "text-theme-muted"],
+    [/\btext-muted\b/g,               "text-theme-muted"],
+    [/\btext-text\b/g,                "text-theme-text"],
+    [/\bbg-bg\b/g,                    "bg-theme-bg"],
+    [/\bbg-muted\b/g,                 "bg-surface"],
+    [/\bborder-muted\b/g,             "border-surface"],
+    [/\bhover:text-text-muted\b/g,    "hover:text-theme-muted"],
+    [/\bhover:text-muted\b/g,         "hover:text-theme-muted"],
+    [/\bfocus:text-muted\b/g,         "focus:text-theme-muted"],
+    [/\bplaceholder-muted\b/g,        "placeholder-theme-muted"],
+    [/\bdivide-muted\b/g,             "divide-surface"],
+  ]
+  for (const [pattern, replacement] of classFixes) {
+    s = s.replace(pattern, replacement)
+  }
+
+  // ── Fix 2: Gradient text — ensure background-clip: text exists ───────────
+  s = s.replace(
+    /(-webkit-text-fill-color\s*:\s*transparent)((?:(?!background-clip)[^}])*?)(})/g,
+    (match, fill, middle, close) => {
+      if (middle.includes("background-clip")) return match
+      return `${fill}; background-clip: text${middle}${close}`
+    }
+  )
+
+  // ── Fix 3: Missing tailwind.config — inject before CDN script ────────────
+  if (s.includes("cdn.tailwindcss.com") && !s.includes("tailwind.config")) {
+    const config = `<script>
+tailwind.config={theme:{extend:{colors:{
+  primary:'${theme.primary}',
+  'primary-dark':'${theme.primaryDark}',
+  accent:'${theme.accent}',
+  surface:'${theme.surface}',
+  'theme-bg':'${theme.bg}',
+  'theme-text':'${theme.text}',
+  'theme-muted':'${theme.textMuted}'
+}}}}
+</script>\n`
+    s = s.replace(
+      '<script src="https://cdn.tailwindcss.com"',
+      config + '<script src="https://cdn.tailwindcss.com"'
+    )
+  }
+
+  // ── Fix 4: Images without explicit height — add min-height fallback ───────
+  s = s.replace(
+    /(<img\b(?:(?!min-h)[^>])*class="(?:(?!min-h)[^"])*object-cover(?:[^"]*)"[^>]*>)/g,
+    (match) => {
+      if (match.includes("h-full") || match.includes("min-h")) return match
+      return match.replace("object-cover", "object-cover min-h-[200px]")
+    }
+  )
+
+  // ── Fix 5: Fade-in safety fallback script ────────────────────────────────
+  // Always inject — it's idempotent (classList.add is a no-op if already present)
+  const safetyScript = `<script>
+(function(){
+  function revealFadeIns(){
+    document.querySelectorAll('.fade-in').forEach(function(el){
+      el.classList.add('visible');
+    });
+  }
+  // Reveal immediately for anything already in viewport
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', revealFadeIns);
+  } else {
+    revealFadeIns();
+  }
+  // Fallback: force-reveal everything after 900ms no matter what
+  setTimeout(revealFadeIns, 900);
+  // Final fallback on full page load
+  window.addEventListener('load', revealFadeIns);
+})();
+</script>`
+
+  if (s.includes("</body>")) {
+    s = s.replace("</body>", safetyScript + "\n</body>")
+  } else {
+    s = s + safetyScript
+  }
+
+  return s
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUTE HANDLER
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -138,8 +296,8 @@ OUTPUT: Return ONLY a complete HTML document starting with <!DOCTYPE html>. No m
 HEAD — exact order matters
 ═══════════════════════════════════════════
 1. Meta tags (charset, viewport, description, title)
-2. Google Fonts link
-3. Tailwind config script (MUST come BEFORE Tailwind CDN):
+2. Google Fonts link: <link href="https://fonts.googleapis.com/css2?family=${theme.fonts}&display=swap" rel="stylesheet">
+3. Tailwind config (MUST come BEFORE Tailwind CDN):
 <script>
   tailwind.config = {
     theme: {
@@ -159,10 +317,10 @@ HEAD — exact order matters
 </script>
 4. Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script>
 5. Alpine.js: <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-6. <style> block with CSS variables and custom classes
+6. <style> block with CSS variables and custom classes (see below)
 
 ═══════════════════════════════════════════
-DESIGN SYSTEM — CSS variables in <style>
+DESIGN SYSTEM — define in <style> block
 ═══════════════════════════════════════════
 :root {
   --primary: ${theme.primary};
@@ -183,78 +341,55 @@ DESIGN SYSTEM — CSS variables in <style>
 }
 body { font-family: var(--body-font); background: var(--bg); color: var(--text); scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
 h1,h2,h3,h4 { font-family: var(--heading-font); }
-
-/* Fade-in animation */
 .fade-in { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
 .fade-in.visible { opacity: 1; transform: translateY(0); }
 .delay-1 { transition-delay: 0.1s; }
 .delay-2 { transition-delay: 0.2s; }
 .delay-3 { transition-delay: 0.3s; }
 .delay-4 { transition-delay: 0.4s; }
-
-/* Gradient text utility */
-.gradient-text {
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  display: inline-block;
-}
-
-/* Gradient accent bar */
-.accent-bar {
-  display: block;
-  width: 60px;
-  height: 3px;
-  background: var(--gradient);
-  border-radius: 9999px;
-  margin: 12px auto 0;
-}
-
-/* Card hover */
+.gradient-text { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: inline-block; }
+.accent-bar { display: block; width: 60px; height: 3px; background: var(--gradient); border-radius: 9999px; margin: 12px auto 0; }
 .hover-lift { transition: transform var(--transition), box-shadow var(--transition); }
 .hover-lift:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); }
-
-/* Nav link underline animation */
 .nav-link { position: relative; }
 .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: var(--primary); transition: width 0.3s ease; }
 .nav-link:hover::after { width: 100%; }
+.btn-primary { background: var(--gradient); color: white; border: none; border-radius: 9999px; padding: 14px 32px; font-weight: 600; cursor: pointer; transition: transform var(--transition), opacity var(--transition); }
+.btn-primary:hover { transform: scale(1.05); opacity: 0.92; }
+.btn-ghost { border: 2px solid rgba(255,255,255,0.35); backdrop-filter: blur(8px); color: white; border-radius: 9999px; padding: 14px 32px; font-weight: 600; cursor: pointer; transition: all var(--transition); }
+.btn-ghost:hover { background: rgba(255,255,255,0.12); }
 
 ═══════════════════════════════════════════
-COLOR USAGE — CRITICAL RULES
+COLOR CLASSES — use EXACTLY these names
 ═══════════════════════════════════════════
-ALWAYS use Tailwind color classes with the exact names from tailwind.config above.
-These are the ONLY valid custom color classes:
-- text-primary         → uses ${theme.primary}
-- text-primary-dark    → uses ${theme.primaryDark}
-- text-accent          → uses ${theme.accent}
-- text-surface         → uses ${theme.surface}
-- text-theme-text      → uses ${theme.text}
-- text-theme-muted     → uses ${theme.textMuted}
-- bg-primary           → background ${theme.primary}
-- bg-surface           → background ${theme.surface}
-- bg-theme-bg          → background ${theme.bg}
-- border-primary       → border ${theme.primary}
+These map to the tailwind.config above. Only use these — nothing else.
+  text-primary       → ${theme.primary}
+  text-accent        → ${theme.accent}
+  text-theme-muted   → ${theme.textMuted}   ← use for secondary/muted text
+  text-theme-text    → ${theme.text}        ← use for body text when needed
+  bg-primary         → background ${theme.primary}
+  bg-surface         → background ${theme.surface}
+  bg-theme-bg        → background ${theme.bg}
+  border-primary     → border ${theme.primary}
 
-NEVER use: text-muted, text-text-muted, text-text, bg-bg, bg-muted — these do not exist.
-For muted/secondary text: use text-theme-muted
-For body text color: use text-theme-text or just rely on body CSS (already set to var(--text))
-For gradient text on headings: use class="gradient-text" (defined in CSS above)
+FORBIDDEN — never use these (they don't exist in Tailwind):
+  ✗ text-muted  ✗ text-text-muted  ✗ text-text  ✗ bg-bg  ✗ bg-muted  ✗ border-muted
 
 ═══════════════════════════════════════════
-IMAGES — Picsum Photos
+IMAGES — Picsum Photos (always reliable)
 ═══════════════════════════════════════════
 URL format: https://picsum.photos/seed/{seed}/{width}/{height}
-Use descriptive, unique seeds for every image based on the site topic.
-Example seeds for "${name}": ${slug}-hero, ${slug}-f1, ${slug}-f2, ${slug}-f3, ${slug}-f4, ${slug}-g1, ${slug}-g2, ${slug}-g3, ${slug}-g4, ${slug}-t1, ${slug}-t2
+- Use unique descriptive seeds per image based on the site topic
+- Example seeds: ${slug}-hero, ${slug}-f1, ${slug}-f2, ${slug}-f3, ${slug}-f4, ${slug}-g1, ${slug}-g2, ${slug}-g3, ${slug}-g4, ${slug}-t1, ${slug}-t2
 
 Image CSS rules (non-negotiable):
 - Every <img>: class="w-full h-full object-cover block"
-- Every image container: explicit height ALWAYS (style="height:Xpx" or h-64/h-72/h-80/h-96)
+- Every image container: explicit height ALWAYS — style="height:Xpx" or h-64/h-72/h-80/h-96
+- NEVER put an img in a container without explicit height
 - Hero container: style="height:100vh" class="relative w-full overflow-hidden"
-- Card image containers: style="height:240px" class="w-full overflow-hidden"
+- Card containers: style="height:240px" class="w-full overflow-hidden"
 - Gallery large: style="height:480px" | Gallery small: style="height:230px"
-- loading="lazy" and descriptive alt on every image
+- loading="lazy" and descriptive alt text on every image
 
 ═══════════════════════════════════════════
 REQUIRED SECTIONS (8 total, in this order)
@@ -262,61 +397,61 @@ REQUIRED SECTIONS (8 total, in this order)
 
 1. NAVBAR — sticky glass morphism
    - style="position:fixed;top:0;width:100%;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:${theme.navBg};z-index:50"
-   - Logo: heading font, font-black, text-primary with small accent dot
-   - Desktop nav: links with class="nav-link text-theme-muted hover:text-primary"
-   - Mobile: Alpine.js x-data="{ open: false }" hamburger
-   - CTA: rounded-full bg-primary text-white px-6 py-2.5 font-semibold hover:bg-primary-dark transition
+   - Logo: heading font, font-black, text-primary + small accent dot
+   - Nav links: class="nav-link text-theme-muted hover:text-primary transition"
+   - Mobile: Alpine.js x-data="{ open: false }" animated hamburger
+   - CTA: class="btn-primary text-sm px-5 py-2"
 
-2. HERO — full viewport, cinematic (DO NOT add fade-in to hero text — it must be visible immediately)
+2. HERO — full viewport (DO NOT add fade-in here — must be immediately visible)
    - Full-screen image (height:100vh, object-cover)
-   - Overlay: style="background:${theme.heroOverlay}"
-   - Eyebrow: small uppercase text-accent tracking-widest font-semibold
-   - Heading: text-6xl md:text-8xl font-black tracking-tight — use class="gradient-text" on key words
-   - Subheadline: text-xl text-theme-muted max-w-2xl leading-relaxed (use text-white/80 if on dark overlay)
-   - Two CTAs: primary gradient button + glass outline button
-   - Scroll indicator: CSS bouncing arrow at bottom
+   - Dark overlay: style="position:absolute;inset:0;background:${theme.heroOverlay}"
+   - Eyebrow: text-accent text-xs tracking-widest uppercase font-semibold
+   - Heading: text-6xl md:text-8xl font-black tracking-tight — use <span class="gradient-text"> on key word(s)
+   - Subheadline: text-xl text-white/80 max-w-2xl leading-relaxed
+   - Two buttons: <button class="btn-primary"> and <button class="btn-ghost">
+   - Bouncing scroll arrow at bottom (CSS animation)
 
 3. STATS — social proof band
-   - Contrasting background (bg-primary or dark surface)
-   - 4 stats: <span class="counter text-5xl font-black" data-target="NUMBER" data-suffix="+">0</span>
-   - Label below each: text-sm text-white/70
+   - Contrasting bg (bg-primary or dark surface)
+   - 4 stats: <span class="counter text-5xl font-black text-white" data-target="NUMBER" data-suffix="+">0</span>
+   - Label: text-sm text-white/70 mt-1
 
-4. FEATURES — 4 cards
-   - Centered heading + accent-bar + eyebrow
+4. FEATURES — 4 cards (class="fade-in delay-X" on each card)
+   - Eyebrow + heading + accent-bar
    - 2x2 grid desktop / 1-col mobile
-   - Each card: image top + title + description, class="hover-lift"
-   - Card bg: bg-surface, border border-white/10 (dark) or border-gray-100 (light), rounded-2xl overflow-hidden
+   - Each: image + title + description, class="hover-lift bg-surface rounded-2xl overflow-hidden"
+   - Card border: border border-white/10 (dark themes) or border-gray-100 (light themes)
 
-5. GALLERY — asymmetric layout
-   - Large image left (height:480px) + 3 small images right (height:230px) in a 2-col grid
-   - All rounded-2xl overflow-hidden
-   - Hover: dark overlay with caption text (group/group-hover pattern)
+5. GALLERY — asymmetric layout (class="fade-in" on images)
+   - 1 large left (height:480px) + 3 small right stacked (height:230px each)
+   - All: rounded-2xl overflow-hidden
+   - group hover dark overlay with caption text
 
-6. TESTIMONIALS — 3 cards
-   - Large SVG quote mark, star rating (5 gold stars inline SVG), review text
-   - Avatar: gradient circle div with initials, name, role
+6. TESTIMONIALS — 3 cards (class="fade-in delay-X" on each)
+   - SVG quote mark, 5 gold stars, review text
+   - Gradient avatar circle with initials, name, role beneath
    - bg-surface border border-white/10 rounded-2xl p-8
 
-7. CTA SECTION
+7. CTA SECTION (class="fade-in" on content)
    - style="background:var(--gradient)"
-   - Bold heading (white), subtext (white/80), white filled CTA button
+   - Bold white heading, white/80 subtext, white filled button
    - Optional CSS dot-grid overlay
 
 8. FOOTER — multi-column professional
-   - Dark bg (or theme-bg), 4 columns: logo+tagline, nav links, services, contact
-   - Social icons as SVG inside bordered circles
-   - Bottom bar: "© 2025 ${name}. All rights reserved." + "Built with PNG Website Builders"
+   - Dark bg, 4 cols: logo+tagline, nav, services, contact
+   - Social icons as SVG in bordered circles
+   - Bottom bar: "© 2025 ${name}" + "Built with PNG Website Builders"
 
 ═══════════════════════════════════════════
 SCRIPTS — add BEFORE </body>
 ═══════════════════════════════════════════
 <script>
-  // Fade-in: handle both in-viewport and below-fold elements
-  const revealObserver = new IntersectionObserver((entries) => {
+  // Scroll fade-in with viewport check
+  const revealObs = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add('visible');
-        revealObserver.unobserve(entry.target);
+        revealObs.unobserve(entry.target);
       }
     });
   }, { threshold: 0.05 });
@@ -324,16 +459,11 @@ SCRIPTS — add BEFORE </body>
   document.querySelectorAll('.fade-in').forEach(el => {
     const rect = el.getBoundingClientRect();
     if (rect.top < window.innerHeight) {
-      el.classList.add('visible'); // Already in viewport — show immediately
+      el.classList.add('visible');
     } else {
-      revealObserver.observe(el);
+      revealObs.observe(el);
     }
   });
-
-  // Safety fallback: ensure all fade-in elements visible after 1.2s
-  setTimeout(() => {
-    document.querySelectorAll('.fade-in').forEach(el => el.classList.add('visible'));
-  }, 1200);
 
   // Navbar scroll shadow
   const navbar = document.querySelector('nav');
@@ -347,8 +477,7 @@ SCRIPTS — add BEFORE </body>
   document.querySelectorAll('.counter').forEach(el => {
     const target = parseInt(el.getAttribute('data-target') || '0');
     const suffix = el.getAttribute('data-suffix') || '';
-    const duration = 2000;
-    const step = target / (duration / 16);
+    const step = target / 120;
     let current = 0;
     const cObs = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
@@ -369,10 +498,8 @@ PREMIUM QUALITY RULES
 ═══════════════════════════════════════════
 - Section padding: py-24 minimum (py-32 for hero and CTA)
 - All content: max-w-7xl mx-auto px-6
-- Every section has an eyebrow label (text-xs uppercase tracking-widest font-semibold text-accent)
-- Every section subtitle has a class="accent-bar" span immediately after it
-- Buttons: rounded-full px-8 py-4 font-semibold hover:scale-105 transition-transform
-- Add class="fade-in delay-X" to cards and below-fold sections (NOT hero content)
+- Every section has an eyebrow label (text-xs uppercase tracking-widest font-semibold text-accent mb-3)
+- Every section subtitle followed by: <span class="accent-bar"></span>
 - Section headings: text-4xl md:text-5xl font-black tracking-tight
 - Make it so impressive the user's first reaction is "wow"
 
@@ -417,11 +544,18 @@ Return the COMPLETE HTML document starting with <!DOCTYPE html>.`
       return NextResponse.json({ error: "No content generated" }, { status: 500 })
     }
 
+    // Strip markdown code fences if present
     let cleanHtml = generatedHtml.trim()
     if (cleanHtml.startsWith("```html")) cleanHtml = cleanHtml.slice(7)
     if (cleanHtml.startsWith("```")) cleanHtml = cleanHtml.slice(3)
     if (cleanHtml.endsWith("```")) cleanHtml = cleanHtml.slice(0, -3)
     cleanHtml = cleanHtml.trim()
+
+    // Step 1: Sanitize — fix bad class names, missing config, gradient text, fade-in fallback
+    cleanHtml = sanitizeGeneratedHtml(cleanHtml, theme)
+
+    // Step 2: Fix broken image URLs — replace any non-200 src with Picsum fallbacks
+    cleanHtml = await fixBrokenImages(cleanHtml, slug)
 
     const previewSlug = nanoid(10)
 
