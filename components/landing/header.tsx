@@ -2,13 +2,22 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import Image from "next/image"
-import { Menu, X, ArrowRight } from "lucide-react"
+import { Menu, X, ArrowRight, Loader2 } from "lucide-react"
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [loadingHref, setLoadingHref] = useState<string | null>(null)
+  const router = useRouter()
+
+  function navigate(href: string) {
+    if (loadingHref) return
+    setLoadingHref(href)
+    router.push(href)
+  }
 
   return (
     <>
@@ -46,12 +55,31 @@ export function Header() {
 
             <div className="hidden md:flex items-center gap-3">
               <ThemeToggle />
-              <Link href="/auth/login">
-                <Button variant="ghost" size="sm" className="font-medium">Sign In</Button>
-              </Link>
-              <Link href="/auth/signup">
-                <Button size="sm" className="glow font-semibold px-5">Get Started Free</Button>
-              </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="font-medium min-w-[80px]"
+                disabled={!!loadingHref}
+                onClick={() => navigate("/auth/login")}
+              >
+                {loadingHref === "/auth/login" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Sign In"
+                )}
+              </Button>
+              <Button
+                size="sm"
+                className="glow font-semibold px-5 min-w-[140px]"
+                disabled={!!loadingHref}
+                onClick={() => navigate("/auth/signup")}
+              >
+                {loadingHref === "/auth/signup" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Get Started Free"
+                )}
+              </Button>
             </div>
 
             <div className="flex md:hidden items-center gap-2">
@@ -86,12 +114,29 @@ export function Header() {
               </Link>
             ))}
             <div className="flex flex-col gap-2 pt-3">
-              <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-                <Button variant="outline" className="w-full">Sign In</Button>
-              </Link>
-              <Link href="/auth/signup" onClick={() => setMobileOpen(false)}>
-                <Button className="w-full glow font-semibold">Get Started Free</Button>
-              </Link>
+              <Button
+                variant="outline"
+                className="w-full min-h-[40px]"
+                disabled={!!loadingHref}
+                onClick={() => { setMobileOpen(false); navigate("/auth/login") }}
+              >
+                {loadingHref === "/auth/login" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Sign In"
+                )}
+              </Button>
+              <Button
+                className="w-full glow font-semibold min-h-[40px]"
+                disabled={!!loadingHref}
+                onClick={() => { setMobileOpen(false); navigate("/auth/signup") }}
+              >
+                {loadingHref === "/auth/signup" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Get Started Free"
+                )}
+              </Button>
             </div>
           </div>
         )}
