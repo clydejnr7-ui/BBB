@@ -1,29 +1,8 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Sparkles, ArrowRight, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
 export default function WelcomePage() {
-  const router = useRouter()
-  const [countdown, setCountdown] = useState(5)
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          router.push("/generate")
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [router])
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="max-w-md w-full text-center">
@@ -57,10 +36,6 @@ export default function WelcomePage() {
             </Button>
           </Link>
         </div>
-
-        <p className="mt-6 text-xs text-muted-foreground">
-          Redirecting automatically in {countdown}s…
-        </p>
       </div>
     </div>
   )
