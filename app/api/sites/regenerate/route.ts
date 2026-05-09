@@ -2,6 +2,10 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 
+export const maxDuration = 60
+
+const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1"
+
 const styleThemes: Record<string, {
   fonts: string; headingFont: string; bodyFont: string
   primary: string; primaryDark: string; accent: string
@@ -59,9 +63,7 @@ async function fixBrokenImages(html: string, slug: string): Promise<string> {
   const imgRegex = /<img[^>]+src="([^"]+)"[^>]*/g
   const matches = [...html.matchAll(imgRegex)]
   if (matches.length === 0) return html
-
   const uniqueUrls = [...new Set(matches.map(m => m[1]))]
-
   const checkUrl = async (url: string): Promise<{ url: string; ok: boolean }> => {
     if (url.includes("picsum.photos")) return { url, ok: true }
     try {
@@ -70,66 +72,34 @@ async function fixBrokenImages(html: string, slug: string): Promise<string> {
       const res = await fetch(url, { method: "HEAD", signal: controller.signal, redirect: "follow" })
       clearTimeout(timer)
       return { url, ok: res.ok }
-    } catch {
-      return { url, ok: false }
-    }
+    } catch { return { url, ok: false } }
   }
-
   const results = await Promise.race([
     Promise.all(uniqueUrls.map(checkUrl)),
-    new Promise<{ url: string; ok: boolean }[]>((resolve) =>
-      setTimeout(() => resolve(uniqueUrls.map(u => ({ url: u, ok: true }))), 5000)
-    ),
+    new Promise<{ url: string; ok: boolean }[]>((resolve) => setTimeout(() => resolve(uniqueUrls.map(u => ({ url: u, ok: true }))), 5000)),
   ])
-
   const broken = new Set(results.filter(r => !r.ok).map(r => r.url))
   if (broken.size === 0) return html
-
-  let fixed = html
-  let i = 0
-  for (const url of broken) {
-    fixed = fixed.split(url).join(`https://picsum.photos/seed/${slug}-fb${i}/800/600`)
-    i++
-  }
+  let fixed = html; let i = 0
+  for (const url of broken) { fixed = fixed.split(url).join(`https://picsum.photos/seed/${slug}-fb${i}/800/600`); i++ }
   return fixed
 }
 
 function sanitizeGeneratedHtml(html: string, theme: typeof styleThemes[string]): string {
   let s = html
-
   const classFixes: [RegExp, string][] = [
-    [/\btext-text-muted\b/g, "text-theme-muted"],
-    [/\btext-muted\b/g, "text-theme-muted"],
-    [/\btext-text\b/g, "text-theme-text"],
-    [/\bbg-bg\b/g, "bg-theme-bg"],
-    [/\bbg-muted\b/g, "bg-surface"],
-    [/\bborder-muted\b/g, "border-surface"],
-    [/\bhover:text-text-muted\b/g, "hover:text-theme-muted"],
-    [/\bhover:text-muted\b/g, "hover:text-theme-muted"],
+    [/\btext-text-muted\b/g, "text-theme-muted"],[/\btext-muted\b/g, "text-theme-muted"],
+    [/\btext-text\b/g, "text-theme-text"],[/\bbg-bg\b/g, "bg-theme-bg"],
+    [/\bbg-muted\b/g, "bg-surface"],[/\bborder-muted\b/g, "border-surface"],
+    [/\bhover:text-text-muted\b/g, "hover:text-theme-muted"],[/\bhover:text-muted\b/g, "hover:text-theme-muted"],
   ]
-  for (const [pattern, replacement] of classFixes) {
-    s = s.replace(pattern, replacement)
-  }
-
+  for (const [pattern, replacement] of classFixes) s = s.replace(pattern, replacement)
   if (s.includes("cdn.tailwindcss.com") && !s.includes("tailwind.config")) {
-    const config = `<script>
-tailwind.config={theme:{extend:{colors:{primary:'${theme.primary}','primary-dark':'${theme.primaryDark}',accent:'${theme.accent}',surface:'${theme.surface}','theme-bg':'${theme.bg}','theme-text':'${theme.text}','theme-muted':'${theme.textMuted}'}}}}
-</script>\n`
+    const config = `<script>\ntailwind.config={theme:{extend:{colors:{primary:'${theme.primary}','primary-dark':'${theme.primaryDark}',accent:'${theme.accent}',surface:'${theme.surface}','theme-bg':'${theme.bg}','theme-text':'${theme.text}','theme-muted':'${theme.textMuted}'}}}}\n</script>\n`
     s = s.replace('<script src="https://cdn.tailwindcss.com"', config + '<script src="https://cdn.tailwindcss.com"')
   }
-
-  const safetyScript = `<script>
-(function(){
-  function rf(){document.querySelectorAll('.fade-in').forEach(function(e){e.classList.add('visible');})}
-  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',rf);}else{rf();}
-  setTimeout(rf,900);
-  window.addEventListener('load',rf);
-})();
-</script>`
-
-  if (s.includes("</body>")) {
-    s = s.replace("</body>", safetyScript + "\n</body>")
-  }
+  const safetyScript = `<script>\n(function(){\n  function rf(){document.querySelectorAll('.fade-in').forEach(function(e){e.classList.add('visible');})}\n  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',rf);}else{rf();}\n  setTimeout(rf,900);\n  window.addEventListener('load',rf);\n})();\n</script>`
+  if (s.includes("</body>")) s = s.replace("</body>", safetyScript + "\n</body>")
   return s
 }
 
@@ -137,101 +107,43 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const { siteId } = await request.json()
-    if (!siteId) {
-      return NextResponse.json({ error: "Missing siteId" }, { status: 400 })
-    }
+    if (!siteId) return NextResponse.json({ error: "Missing siteId" }, { status: 400 })
 
     const adminClient = createAdminClient()
 
-    // Fetch the existing site — verify ownership
     const { data: site, error: fetchError } = await adminClient
       .from("generated_sites")
       .select("id, name, description, style, preview_slug, user_id")
-      .eq("id", siteId)
-      .eq("user_id", user.id)
-      .single()
+      .eq("id", siteId).eq("user_id", user.id).single()
 
-    if (fetchError || !site) {
-      return NextResponse.json({ error: "Site not found" }, { status: 404 })
-    }
+    if (fetchError || !site) return NextResponse.json({ error: "Site not found" }, { status: 404 })
 
     const { name, description, style, preview_slug } = site
     const theme = styleThemes[style] || styleThemes.modern
     const slug = name.toLowerCase().replace(/\s+/g, "-")
 
-    const systemPrompt = `You are a world-class UI/UX designer and senior frontend developer at a top-tier agency. Produce a stunning, professional, premium website. Every site should look like it cost $50,000 to build.
+    const systemPrompt = `You are a world-class UI/UX designer and senior frontend developer. Produce a stunning premium website that looks like it cost $50,000.
 
-PROJECT:
-- Name: ${name}
-- Description: ${description}
-- Style: ${style}
+PROJECT: Name: ${name} | Description: ${description} | Style: ${style}
 
-OUTPUT: Return ONLY a complete HTML document starting with <!DOCTYPE html>. No markdown, no code fences, no explanation.
+OUTPUT: Return ONLY complete HTML starting with <!DOCTYPE html>. No markdown, no code fences.
 
-HEAD — exact order:
-1. Meta tags
-2. Google Fonts: <link href="https://fonts.googleapis.com/css2?family=${theme.fonts}&display=swap" rel="stylesheet">
-3. Tailwind config BEFORE CDN:
-<script>
-  tailwind.config = {
-    theme: { extend: { colors: {
-      primary: '${theme.primary}', 'primary-dark': '${theme.primaryDark}',
-      accent: '${theme.accent}', surface: '${theme.surface}',
-      'theme-bg': '${theme.bg}', 'theme-text': '${theme.text}', 'theme-muted': '${theme.textMuted}',
-    }}}
-  }
-</script>
-4. <script src="https://cdn.tailwindcss.com"></script>
-5. <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-6. <style> block with:
-:root { --primary:${theme.primary}; --primary-dark:${theme.primaryDark}; --accent:${theme.accent}; --bg:${theme.bg}; --surface:${theme.surface}; --text:${theme.text}; --text-muted:${theme.textMuted}; --heading-font:${theme.headingFont}; --body-font:${theme.bodyFont}; --gradient:${theme.gradient}; --radius:12px; --radius-lg:20px; --shadow:0 4px 24px rgba(0,0,0,0.12); --shadow-lg:0 12px 48px rgba(0,0,0,0.2); --transition:0.3s cubic-bezier(0.4,0,0.2,1); }
-body { font-family:var(--body-font); background:var(--bg); color:var(--text); scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
-h1,h2,h3,h4 { font-family:var(--heading-font); }
-.fade-in { opacity:0; transform:translateY(28px); transition:opacity 0.7s ease,transform 0.7s ease; }
-.fade-in.visible { opacity:1; transform:translateY(0); }
-.delay-1{transition-delay:.1s} .delay-2{transition-delay:.2s} .delay-3{transition-delay:.3s} .delay-4{transition-delay:.4s}
-.gradient-text { background:var(--gradient); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; display:inline-block; }
-.accent-bar { display:block; width:60px; height:3px; background:var(--gradient); border-radius:9999px; margin:12px auto 0; }
-.hover-lift { transition:transform var(--transition),box-shadow var(--transition); }
-.hover-lift:hover { transform:translateY(-8px); box-shadow:var(--shadow-lg); }
-.nav-link { position:relative; }
-.nav-link::after { content:''; position:absolute; bottom:-2px; left:0; width:0; height:2px; background:var(--primary); transition:width .3s ease; }
-.nav-link:hover::after { width:100%; }
-.btn-primary { background:var(--gradient); color:white; border:none; border-radius:9999px; padding:14px 32px; font-weight:600; cursor:pointer; transition:transform var(--transition),opacity var(--transition); }
-.btn-primary:hover { transform:scale(1.05); opacity:.92; }
-.btn-ghost { border:2px solid rgba(255,255,255,.35); backdrop-filter:blur(8px); color:white; border-radius:9999px; padding:14px 32px; font-weight:600; cursor:pointer; transition:all var(--transition); }
-.btn-ghost:hover { background:rgba(255,255,255,.12); }
+HEAD order: meta tags → Google Fonts (${theme.fonts}) → Tailwind config script → CDN script → Alpine.js → style block with CSS vars.
+CSS vars: --primary:${theme.primary}; --primary-dark:${theme.primaryDark}; --accent:${theme.accent}; --bg:${theme.bg}; --surface:${theme.surface}; --text:${theme.text}; --text-muted:${theme.textMuted}; --heading-font:${theme.headingFont}; --body-font:${theme.bodyFont}; --gradient:${theme.gradient};
 
-COLOR CLASSES — use ONLY these:
-  text-primary, text-accent, text-theme-muted, text-theme-text
-  bg-primary, bg-surface, bg-theme-bg, border-primary
-NEVER USE: text-muted, text-text-muted, text-text, bg-bg, bg-muted, border-muted
+COLOR CLASSES: ONLY text-primary, text-accent, text-theme-muted, bg-primary, bg-surface, bg-theme-bg
+NEVER: text-muted, text-text-muted, bg-bg, bg-muted
 
-IMAGES: https://picsum.photos/seed/{seed}/{width}/{height}
-Use unique descriptive seeds: ${slug}-hero, ${slug}-f1..f4, ${slug}-g1..g4, ${slug}-t1..t2
-Every <img>: class="w-full h-full object-cover block" | container must have explicit height
+IMAGES: https://picsum.photos/seed/${slug}-{unique}/1200/800
 
-SECTIONS (8 required): navbar, hero, stats, features(4 cards), gallery(asymmetric), testimonials(3), cta, footer
-HERO: DO NOT add fade-in class to hero content — it must be immediately visible
-CARDS/SECTIONS BELOW FOLD: add class="fade-in delay-X"
+SECTIONS (8 required): navbar, hero, stats, features(4 cards), gallery, testimonials(3), cta, footer
 
-SCRIPTS before </body>:
-<script>
-const ro=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('visible');ro.unobserve(x.target);}});},{threshold:.05});
-document.querySelectorAll('.fade-in').forEach(el=>{const r=el.getBoundingClientRect();r.top<window.innerHeight?el.classList.add('visible'):ro.observe(el);});
-const nav=document.querySelector('nav');if(nav)window.addEventListener('scroll',()=>{nav.style.boxShadow=window.scrollY>60?'0 4px 30px rgba(0,0,0,.25)':'none';});
-document.querySelectorAll('.counter').forEach(el=>{const t=parseInt(el.dataset.target||'0'),sf=el.dataset.suffix||'',step=t/120;let c=0;const co=new IntersectionObserver(e=>{if(e[0].isIntersecting){const ti=setInterval(()=>{c+=step;if(c>=t){c=t;clearInterval(ti);}el.textContent=Math.floor(c).toLocaleString()+sf;},16);co.unobserve(el);}});co.observe(el);});
-</script>
+Return COMPLETE HTML. Make it stunning.`
 
-Make it so impressive the user's first reaction is "wow". Return COMPLETE HTML starting with <!DOCTYPE html>.`
-
-    const response = await fetch(`${process.env.OPENROUTER_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -240,19 +152,20 @@ Make it so impressive the user's first reaction is "wow". Return COMPLETE HTML s
         "X-Title": "PNG Website Builders",
       },
       body: JSON.stringify({
-        model: "openrouter/auto",
+        model: "google/gemini-2.0-flash-001",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Regenerate a fresh, stunning ${style} website for: ${name}. ${description}` },
         ],
-        max_tokens: 16000,
+        max_tokens: 14000,
         temperature: 0.7,
-        route: "fallback",
       }),
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
+      const errorText = await response.text()
+      let errorData: { error?: string } = {}
+      try { errorData = JSON.parse(errorText) } catch { /* non-JSON */ }
       if (response.status === 429) return NextResponse.json({ error: "AI is rate limited. Please wait 30 seconds." }, { status: 429 })
       if (response.status === 503 || response.status === 502) return NextResponse.json({ error: "AI service temporarily unavailable." }, { status: 503 })
       console.error("OpenRouter error:", errorData)
@@ -261,10 +174,7 @@ Make it so impressive the user's first reaction is "wow". Return COMPLETE HTML s
 
     const data = await response.json()
     const generatedHtml = data.choices?.[0]?.message?.content
-
-    if (!generatedHtml) {
-      return NextResponse.json({ error: "No content generated" }, { status: 500 })
-    }
+    if (!generatedHtml) return NextResponse.json({ error: "No content generated" }, { status: 500 })
 
     let cleanHtml = generatedHtml.trim()
     if (cleanHtml.startsWith("```html")) cleanHtml = cleanHtml.slice(7)
@@ -275,12 +185,11 @@ Make it so impressive the user's first reaction is "wow". Return COMPLETE HTML s
     cleanHtml = sanitizeGeneratedHtml(cleanHtml, theme)
     cleanHtml = await fixBrokenImages(cleanHtml, slug)
 
-    // Update existing site — no new record, no credit charge
+    // Note: removed updated_at — column does not exist in schema
     const { error: updateError } = await adminClient
       .from("generated_sites")
-      .update({ html_code: cleanHtml, updated_at: new Date().toISOString() })
-      .eq("id", siteId)
-      .eq("user_id", user.id)
+      .update({ html_code: cleanHtml })
+      .eq("id", siteId).eq("user_id", user.id)
 
     if (updateError) {
       console.error("Database update error:", updateError)
