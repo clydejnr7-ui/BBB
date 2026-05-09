@@ -153,8 +153,6 @@ async function fetchImageSet(name: string, description: string, slug: string): P
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FORCE REAL IMAGES
-// After AI generates HTML, replace every picsum URL the AI wrote
-// with our real fetched images in order. Guarantees topic-relevant photos.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function forceRealImages(html: string, imageSet: ImageSet): string {
@@ -167,7 +165,7 @@ function forceRealImages(html: string, imageSet: ImageSet): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BROKEN IMAGE FIXER — trusted CDN domains are never re-checked
+// BROKEN IMAGE FIXER
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TRUSTED_IMAGE_DOMAINS = [
@@ -269,6 +267,20 @@ tailwind.config={theme:{extend:{colors:{
     }
   )
 
+  // Fix Alpine.js mobile menu: add x-cloak so dropdown is hidden until Alpine initialises
+  if (!s.includes('[x-cloak]')) {
+    s = s.replace('<style>', '<style>[x-cloak]{display:none!important}')
+  }
+  // Add x-cloak to any div/nav/ul using x-show so mobile menus don't flash open
+  s = s.replace(/(<(?:div|nav|ul)\b[^>]*\bx-show\b[^>]*>)/g, (match) => {
+    if (match.includes('x-cloak')) return match
+    return match.replace(/^<(div|nav|ul)/, '<$1 x-cloak')
+  })
+  // Force mobile menu open state to false if AI accidentally defaulted it to true
+  s = s.replace(/x-data=["']\{([^"']*)\bopen\s*:\s*true([^"']*)\}["']/g,
+    (match) => match.replace('open: true', 'open: false').replace('open:true', 'open:false')
+  )
+
   const safetyScript = `<script>
 (function(){
   function revealFadeIns(){ document.querySelectorAll('.fade-in').forEach(function(el){ el.classList.add('visible'); }); }
@@ -306,7 +318,6 @@ export async function POST(request: Request) {
     const theme = styleThemes[style] || styleThemes.modern
     const slug = name.toLowerCase().replace(/\s+/g, "-")
 
-    // Fetch real topic-relevant images BEFORE building the prompt
     const imageSet = await fetchImageSet(name, description, slug)
 
     const systemPrompt = `You are a world-class UI/UX designer and senior frontend developer at a top-tier agency. Produce a stunning, professional, premium website. Every site should look like it cost $50,000 to build.
@@ -335,7 +346,7 @@ HEAD — exact order matters
 </script>
 4. Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script>
 5. Alpine.js: <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-6. <style> block
+6. <style> block — MUST include: [x-cloak] { display: none !important; }
 
 ═══════════════════════════════════════════
 DESIGN SYSTEM
@@ -399,7 +410,12 @@ REQUIRED SECTIONS (8 total)
 
 1. NAVBAR — fixed, glass morphism, Alpine.js mobile menu
    style="position:fixed;top:0;width:100%;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:${theme.navBg};z-index:9999"
-   CRITICAL: Never add z-index, transform, filter, will-change, or isolation to the <section> or <div> that wraps the hero image. These create stacking contexts that bury the fixed navbar.
+   MOBILE MENU RULES — CRITICAL:
+   - Hamburger button: class="md:hidden" — ONLY visible on mobile
+   - Desktop nav links: class="hidden md:flex" — ONLY visible on desktop
+   - Mobile dropdown div: x-show="open" x-cloak — starts hidden, shown only when hamburger clicked
+   - x-data MUST be: x-data="{ open: false }" — never true
+   - NEVER add transform, filter, will-change, or isolation to the hero section or its wrapper
 
 2. HERO — full viewport, NO fade-in
    - Full-screen image height:100vh
@@ -516,13 +532,8 @@ Return the COMPLETE HTML document starting with <!DOCTYPE html>.`
     if (cleanHtml.endsWith("```")) cleanHtml = cleanHtml.slice(0, -3)
     cleanHtml = cleanHtml.trim()
 
-    // Step 1: Fix class names, missing config, gradient text
     cleanHtml = sanitizeGeneratedHtml(cleanHtml, theme)
-
-    // Step 2: Replace every picsum URL the AI used with our real fetched images
     cleanHtml = forceRealImages(cleanHtml, imageSet)
-
-    // Step 3: Check any remaining unknown URLs — trusted CDN domains skipped
     cleanHtml = await fixBrokenImages(cleanHtml, slug)
 
     const previewSlug = nanoid(10)
