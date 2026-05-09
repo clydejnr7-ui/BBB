@@ -15,7 +15,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { packageId, credits, price } = body
 
-    // Validate package
     const validPackage = CREDIT_PACKAGES.find(
       (pkg) => pkg.id === packageId && pkg.credits === credits && pkg.price === price
     )
@@ -24,7 +23,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid package" }, { status: 400 })
     }
 
-    // Create NowPayments invoice
     const nowPaymentsResponse = await fetch("https://api.nowpayments.io/v1/invoice", {
       method: "POST",
       headers: {
@@ -35,7 +33,7 @@ export async function POST(request: Request) {
         price_amount: price,
         price_currency: "usd",
         order_id: `${user.id}-${Date.now()}`,
-        order_description: `${credits} SiteForge Credits`,
+        order_description: `${credits} PNG Website Builders Credits`,
         ipn_callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/nowpayments-webhook`,
         success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
         cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?cancelled=true`,
@@ -50,7 +48,6 @@ export async function POST(request: Request) {
 
     const paymentData = await nowPaymentsResponse.json()
 
-    // Store pending payment in database
     const adminClient = createAdminClient()
     await adminClient.from("payments").insert({
       user_id: user.id,
