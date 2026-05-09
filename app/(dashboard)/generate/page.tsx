@@ -388,36 +388,32 @@ export default function GeneratePage() {
   async function runGeneration(data: GenerateForm) {
     setSubmittedData(data)
     setStage("generating")
-    setGeneratedHtml("")
-    setBlobUrl("")
     setEditMode(false)
-    setDeployDialog(false)
 
     try {
-      const response = await fetch("/api/generate", {
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
-      const result = await response.json()
-      if (!response.ok) {
-        setStage("form")
-        throw new Error(result.error || "Generation failed")
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Generation failed")
       }
-      const htmlResponse = await fetch(`/api/preview/${result.previewSlug}`)
-      const html = await htmlResponse.text()
-      setGeneratedHtml(html)
-      setPreviewSlug(result.previewSlug)
-      setCredits((prev) => (prev !== null ? prev - 1 : prev))
+
+      const result = await res.json()
+      setGeneratedHtml(result.html)
+      setPreviewSlug(result.slug)
+      setCredits((c) => (c !== null ? c - 1 : null))
       setStage("preview")
-      toast.success("Website generated!")
-    } catch (error) {
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong")
       setStage("form")
-      toast.error(error instanceof Error ? error.message : "Failed to generate website")
     }
   }
 
-  function onSubmit(data: GenerateForm) {
+  async function onSubmit(data: GenerateForm) {
     if (credits !== null && credits < 1) {
       toast.error("You need at least 1 credit to generate a website")
       return
@@ -506,15 +502,6 @@ export default function GeneratePage() {
               {stage === "preview" && (
                 <>
                   <Button
-                    size="sm"
-                    className="w-full justify-start gap-2 bg-green-600 hover:bg-green-500 text-white border-0"
-                    onClick={handleDeploy}
-                  >
-                    <Rocket className="h-3.5 w-3.5" />
-                    Deploy Site
-                  </Button>
-
-                  <Button
                     variant="outline"
                     size="sm"
                     className={cn(
@@ -580,31 +567,54 @@ export default function GeneratePage() {
 
           {/* RIGHT PANEL */}
           <div className="flex-1 flex flex-col">
+            {/* TOP TOOLBAR */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-[#161b22]">
+              {/* Left: preview URL / status */}
               <span className="text-xs text-white/40 font-mono">
                 {stage === "generating" ? "● generating..." : `preview/${previewSlug}`}
               </span>
-              {stage === "preview" && (
-                <div className="flex items-center gap-1">
-                  {(["desktop", "tablet", "mobile"] as DeviceType[]).map((d) => {
-                    const Icon = d === "desktop" ? Monitor : d === "tablet" ? Tablet : Smartphone
-                    return (
-                      <button
-                        key={d}
-                        onClick={() => setDevice(d)}
-                        className={cn(
-                          "p-1.5 rounded transition-colors",
-                          device === d ? "text-white bg-white/10" : "text-white/30 hover:text-white/60"
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+
+              {/* Right: device switcher + Deploy button */}
+              <div className="flex items-center gap-2">
+                {stage === "preview" && (
+                  <>
+                    {/* Device switcher */}
+                    <div className="flex items-center gap-1">
+                      {(["desktop", "tablet", "mobile"] as DeviceType[]).map((d) => {
+                        const Icon = d === "desktop" ? Monitor : d === "tablet" ? Tablet : Smartphone
+                        return (
+                          <button
+                            key={d}
+                            onClick={() => setDevice(d)}
+                            className={cn(
+                              "p-1.5 rounded transition-colors",
+                              device === d ? "text-white bg-white/10" : "text-white/30 hover:text-white/60"
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-4 w-px bg-white/10" />
+
+                    {/* Deploy button — top right */}
+                    <Button
+                      size="sm"
+                      className="gap-1.5 bg-green-600 hover:bg-green-500 text-white border-0 font-semibold shadow-lg shadow-green-900/30 transition-all"
+                      onClick={handleDeploy}
+                    >
+                      <Rocket className="h-3.5 w-3.5" />
+                      Deploy Site
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
 
+            {/* PREVIEW AREA */}
             <div className="flex-1 overflow-auto flex items-start justify-center bg-[#0d1117]">
               {stage === "generating" ? (
                 <TerminalLoader projectName={submittedData?.name ?? "your website"} />
@@ -648,7 +658,8 @@ export default function GeneratePage() {
                   <p className="text-white/40 text-xs">Share this link with anyone — no login required</p>
                 </div>
 
-                <div className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2.5">
+                <div className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0" />
                   <span className="flex-1 text-white/70 text-xs font-mono truncate">
                     {typeof window !== "undefined"
                       ? `${window.location.origin}/preview/${previewSlug}`
@@ -848,4 +859,4 @@ export default function GeneratePage() {
       </form>
     </div>
   )
-}  
+}
