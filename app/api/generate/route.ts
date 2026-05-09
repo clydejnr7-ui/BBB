@@ -3,6 +3,59 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 import { nanoid } from "nanoid"
 
+// Fetch real, working image URLs from Openverse (free, no API key needed)
+// Falls back to Picsum if Openverse fails or returns too few results
+async function fetchTopicImages(name: string, description: string): Promise<{
+  hero: string
+  cards: string[]
+  gallery: string[]
+  about: string[]
+}> {
+  const allUrls: string[] = []
+
+  const queries = [
+    `${name} ${description}`.slice(0, 80),
+    name,
+    description.split(" ").slice(0, 4).join(" "),
+  ]
+
+  for (const q of queries) {
+    try {
+      const res = await fetch(
+        `https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&page_size=6`,
+        { headers: { "User-Agent": "WebsiteBuilder/1.0 (contact@pngwebsitebuilders.site)" } }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        const urls: string[] = (data.results || [])
+          .filter((r: { width: number; url: string }) => r.width >= 400 && r.url)
+          .map((r: { url: string }) => r.url)
+        allUrls.push(...urls)
+      }
+    } catch {
+      // continue to next query
+    }
+  }
+
+  // Deduplicate
+  const unique = [...new Set(allUrls)]
+
+  // Pad with Picsum if we don't have enough (Picsum always works)
+  const seed = encodeURIComponent(name.toLowerCase().replace(/\s+/g, "-"))
+  let i = unique.length
+  while (unique.length < 12) {
+    unique.push(`https://picsum.photos/seed/${seed}-${i}/800/600`)
+    i++
+  }
+
+  return {
+    hero: unique[0],
+    cards: unique.slice(1, 5),
+    gallery: unique.slice(5, 9),
+    about: unique.slice(9, 12),
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -30,6 +83,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 })
     }
 
+    // Pre-fetch real images before calling the AI
+    const images = await fetchTopicImages(name, description)
+
     const systemPrompt = `You are an expert frontend developer. Generate a complete, responsive one-page website based on this request:
 Project name: ${name}
 Description: ${description}
@@ -37,84 +93,66 @@ Style: ${style}
 
 Return only valid HTML/CSS/JS (no markdown wrappers, no \`\`\`html blocks). Use Tailwind CSS via CDN (<script src="https://cdn.tailwindcss.com"></script>).
 
-IMAGES — Use Unsplash Source URLs. These always return real, high-quality photos based on keywords.
+IMAGES — Use ONLY the pre-fetched image URLs listed below. Do NOT invent or modify any image URLs. These are real, verified, working photo URLs chosen to match the site topic.
 
-URL format: https://source.unsplash.com/{width}x{height}/?{keyword1},{keyword2}
+Hero image (use for the main banner/header):
+${images.hero}
 
-CRITICAL KEYWORD RULE — Never use specific country names, city names, or proper nouns as keywords. Unsplash does not index by location name. Instead, describe what you would VISUALLY SEE there:
-- "Papua New Guinea travel" → use: jungle,rainforest,island,coral,reef,waterfall,tribe,culture
-- "Paris travel" → use: city,architecture,cafe,street,eiffel
-- "Dubai tourism" → use: skyscraper,desert,luxury,skyline,city
-- "Nigerian food" → use: food,spices,cooking,market,cuisine
-- "Maldives resort" → use: ocean,beach,tropical,island,turquoise
+Feature/service card images (use one per card in order):
+- Card 1: ${images.cards[0]}
+- Card 2: ${images.cards[1]}
+- Card 3: ${images.cards[2]}
+- Card 4: ${images.cards[3]}
 
-Keyword strategy — always think: "What would a photo of this LOOK LIKE?" and use those visual nouns.
+Gallery images (use in the gallery/about section):
+- Gallery 1: ${images.gallery[0]}
+- Gallery 2: ${images.gallery[1]}
+- Gallery 3: ${images.gallery[2]}
+- Gallery 4: ${images.gallery[3]}
 
-More keyword examples by industry:
-- Restaurant / food → food, cooking, restaurant, dining, cuisine, chef, meal
-- Tech startup → technology, computer, office, innovation, coding, startup
-- Gym / fitness → fitness, gym, exercise, workout, running, sport
-- Law firm → office, law, professional, business, meeting, justice
-- Real estate → house, architecture, interior, property, building, home
-- Medical / clinic → medical, hospital, doctor, health, clinic, care
-- Beauty salon → beauty, hair, makeup, salon, spa, skincare
-- Photography studio → camera, photography, studio, portrait, light
-- Coffee shop → coffee, cafe, espresso, barista, cup, beans
-- Travel / adventure → travel, adventure, nature, landscape, mountain, beach
-- Jungle / tropical → jungle, rainforest, waterfall, tropical, nature, green
-- Ocean / marine → ocean, sea, coral, reef, underwater, beach, waves
-- Cultural / indigenous → culture, traditional, art, craft, village, ceremony
+About/team images:
+- About 1: ${images.about[0]}
+- About 2: ${images.about[1]}
 
-Use 2-3 keywords per image, comma-separated, all lowercase. Each image on the page must have DIFFERENT keyword combinations so photos don't repeat.
-
-Required images and sizes:
-- Hero banner: 1600x800 — visual keywords matching the main site topic
-- Feature/service cards: 800x500 each — unique keyword combos per card matching each specific feature
-- About/team section: 400x500 each — "portrait,professional,team" or topic-specific
-- Gallery images: 600x400 each — varied keyword combos, all on-topic
-
-CRITICAL image CSS rules — every image MUST be fully visible, never clipped or broken:
-- All <img> tags MUST have: class="w-full h-full object-cover block"
-- Image containers MUST have explicit height: h-64, h-72, h-80, h-96, or style="height:400px"
-- NEVER use a container without an explicit height when it holds an image
-- Hero image container: style="height:600px" with class="relative overflow-hidden w-full"
-- Card image containers: class="w-full overflow-hidden" with explicit height like h-56 or h-64
+RULES — follow these exactly or images will break:
+- Copy each URL above exactly as-is into the src attribute — do not change, shorten, or guess any URL
+- Every <img> MUST have: class="w-full h-full object-cover block"
+- Every image container MUST have an explicit height (e.g. style="height:400px" or Tailwind h-64, h-72, h-80, h-96)
+- NEVER use a container without explicit height when it holds an image
+- Hero container: style="height:600px" class="relative overflow-hidden w-full"
+- Card containers: class="w-full overflow-hidden" style="height:220px"
 - Add loading="lazy" and descriptive alt text to every img tag
 
-Example hero for a Papua New Guinea travel site:
+Example hero section:
 <section class="relative w-full overflow-hidden" style="height:600px">
-  <img src="https://source.unsplash.com/1600x800/?jungle,rainforest,tropical" alt="Papua New Guinea jungle landscape" loading="lazy" class="w-full h-full object-cover block" />
-  <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white text-center px-6">
-    <h1 class="text-5xl font-bold mb-4">Discover Papua New Guinea</h1>
-    <p class="text-xl max-w-2xl">Explore untouched wilderness and vibrant culture</p>
+  <img src="${images.hero}" alt="${name} hero image" loading="lazy" class="w-full h-full object-cover block" />
+  <div class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-6">
+    <h1 class="text-5xl font-bold mb-4">Discover ${name}</h1>
+    <p class="text-xl max-w-2xl">Your compelling headline here</p>
   </div>
 </section>
 
-Example card for the same site:
+Example feature card:
 <div class="rounded-xl overflow-hidden shadow-lg bg-white">
   <div class="w-full overflow-hidden" style="height:220px">
-    <img src="https://source.unsplash.com/800/500/?coral,reef,ocean" alt="Coral reef diving" loading="lazy" class="w-full h-full object-cover block" />
+    <img src="${images.cards[0]}" alt="Feature image" loading="lazy" class="w-full h-full object-cover block" />
   </div>
   <div class="p-6">
-    <h3 class="text-xl font-semibold mb-2">Coral Triangle Diving</h3>
-    <p class="text-gray-600">World-class diving in pristine waters.</p>
+    <h3 class="text-xl font-semibold mb-2">Feature Title</h3>
+    <p class="text-gray-600">Feature description.</p>
   </div>
 </div>
 
-Requirements:
-- The design must be modern, accessible, and visually stunning
-- Include a navbar with the project name and navigation links
-- Include a hero section with a full-width background image and compelling headline overlaid on it
-- Include a features/services section with image cards (at least 3)
-- Include a gallery or about section with additional images
-- Include a footer with copyright and links
-- All links should use href="#"
-- Use semantic HTML elements
-- Add smooth scroll behavior
-- Include subtle animations and transitions
-- The color scheme should match the "${style}" style preference
-- Make it fully responsive for mobile, tablet, and desktop
-- Add appropriate meta tags in the head
+Page requirements:
+- Navbar with project name and navigation links (all href="#")
+- Hero section with the hero image and headline overlaid on it
+- Features/services section with at least 3 image cards using the card images above
+- Gallery or about section using the gallery images above
+- Footer with copyright and links
+- Use semantic HTML, smooth scroll, subtle animations and transitions
+- Color scheme matching the "${style}" style
+- Fully responsive for mobile, tablet, and desktop
+- Appropriate meta tags in the head
 
 Return the complete HTML document starting with <!DOCTYPE html>.`
 
