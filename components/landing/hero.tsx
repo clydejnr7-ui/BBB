@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Sparkles, Zap } from "lucide-react"
+import { ArrowRight, Sparkles, Zap, Star } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
 
 const DEMOS = [
@@ -92,7 +92,6 @@ type Phase = "typing" | "generating" | "site" | "deleting"
 function MockWebsite({ site }: { site: typeof DEMOS[0]["site"]; visible: boolean }) {
   return (
     <div className="w-full h-full flex flex-col text-left overflow-hidden rounded-b-xl select-none">
-      {/* Navbar */}
       <div className="flex items-center justify-between px-4 py-2 bg-white/10 backdrop-blur-sm border-b border-white/10 shrink-0">
         <span className="text-white font-bold text-xs">{site.nav}</span>
         <div className="hidden sm:flex gap-3">
@@ -100,25 +99,13 @@ function MockWebsite({ site }: { site: typeof DEMOS[0]["site"]; visible: boolean
             <span key={l} className="text-white/70 text-[9px] font-medium">{l}</span>
           ))}
         </div>
-        <div className={`${site.accent} rounded px-2 py-0.5 text-white text-[9px] font-bold`}>
-          {site.heroCta}
-        </div>
+        <div className={`${site.accent} rounded px-2 py-0.5 text-white text-[9px] font-bold`}>{site.heroCta}</div>
       </div>
-
-      {/* Hero */}
       <div className={`bg-gradient-to-br ${site.heroBg} px-5 py-4 shrink-0`}>
-        <h2 className="text-white font-bold text-sm leading-tight whitespace-pre-line">
-          {site.heroTitle}
-        </h2>
-        <p className="text-white/70 text-[9px] mt-1 leading-relaxed max-w-xs">
-          {site.heroSub}
-        </p>
-        <div className={`${site.accent} inline-block mt-2 rounded px-3 py-1 text-white text-[9px] font-bold`}>
-          {site.heroCta} →
-        </div>
+        <h2 className="text-white font-bold text-sm leading-tight whitespace-pre-line">{site.heroTitle}</h2>
+        <p className="text-white/70 text-[9px] mt-1 leading-relaxed max-w-xs">{site.heroSub}</p>
+        <div className={`${site.accent} inline-block mt-2 rounded px-3 py-1 text-white text-[9px] font-bold`}>{site.heroCta} →</div>
       </div>
-
-      {/* Feature cards */}
       <div className="flex gap-2 px-4 py-3 bg-white shrink-0">
         {site.cards.map((card) => (
           <div key={card.label} className={`flex-1 ${card.color} rounded-lg p-2 flex flex-col items-center gap-1`}>
@@ -127,8 +114,6 @@ function MockWebsite({ site }: { site: typeof DEMOS[0]["site"]; visible: boolean
           </div>
         ))}
       </div>
-
-      {/* Content rows */}
       <div className="flex-1 bg-white px-4 pb-2 space-y-2">
         <div className="h-1.5 bg-gray-200 rounded w-2/3" />
         <div className="h-1.5 bg-gray-100 rounded w-full" />
@@ -139,8 +124,6 @@ function MockWebsite({ site }: { site: typeof DEMOS[0]["site"]; visible: boolean
           <div className="h-8 bg-gray-100 rounded flex-1" />
         </div>
       </div>
-
-      {/* Footer */}
       <div className="bg-gray-900 px-4 py-2 flex items-center justify-between shrink-0">
         <span className="text-gray-500 text-[8px]">© 2025 {site.nav}</span>
         <div className="flex gap-2">
@@ -156,38 +139,25 @@ function MockWebsite({ site }: { site: typeof DEMOS[0]["site"]; visible: boolean
 function GeneratingOverlay() {
   const [dots, setDots] = useState(1)
   const bars = [0.3, 0.6, 0.9, 0.7, 0.5, 0.8, 0.4, 0.95, 0.6, 0.75]
-
   useEffect(() => {
     const t = setInterval(() => setDots((d) => (d % 3) + 1), 350)
     return () => clearInterval(t)
   }, [])
-
   return (
-    <div className="absolute inset-0 bg-[#0d1117] flex flex-col items-center justify-center gap-4 rounded-b-xl">
+    <div className="absolute inset-0 bg-[#0a0d14] flex flex-col items-center justify-center gap-4 rounded-b-xl">
       <div className="flex gap-1 items-end h-10">
         {bars.map((h, i) => (
-          <div
-            key={i}
-            className="w-2 rounded-sm bg-primary/60"
-            style={{
-              height: `${h * 100}%`,
-              animation: `barPulse 0.8s ease-in-out ${i * 0.08}s infinite alternate`,
-            }}
-          />
+          <div key={i} className="w-2 rounded-sm bg-primary/70" style={{ height: `${h * 100}%`, animation: `barPulse 0.8s ease-in-out ${i * 0.08}s infinite alternate` }} />
         ))}
       </div>
-      <p className="text-white/70 text-sm font-mono">
-        Generating{".".repeat(dots)}
-      </p>
-      <style>{`
-        @keyframes barPulse {
-          from { opacity: 0.3; transform: scaleY(0.6); }
-          to   { opacity: 1;   transform: scaleY(1);   }
-        }
-      `}</style>
+      <p className="text-white/60 text-sm font-mono tracking-wide">Generating{".".repeat(dots)}</p>
+      <style>{`@keyframes barPulse { from { opacity: 0.3; transform: scaleY(0.6); } to { opacity: 1; transform: scaleY(1); } }`}</style>
     </div>
   )
 }
+
+const AVATAR_COLORS = ["bg-violet-500", "bg-blue-500", "bg-emerald-500", "bg-orange-500", "bg-rose-500"]
+const AVATAR_INITIALS = ["S", "M", "E", "D", "A"]
 
 export function Hero() {
   const [demoIndex, setDemoIndex] = useState(0)
@@ -199,38 +169,21 @@ export function Hero() {
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>
-
     function runCycle(idx: number, ph: Phase, text: string) {
       const demo = DEMOS[idx]
       const fullPrompt = demo.prompt
-
       if (ph === "typing") {
         if (text.length < fullPrompt.length) {
           const next = fullPrompt.slice(0, text.length + 1)
           setTypedText(next)
           timeout = setTimeout(() => runCycle(idx, "typing", next), TYPE_SPEED)
         } else {
-          timeout = setTimeout(() => {
-            phaseRef.current = "generating"
-            setPhase("generating")
-            setSiteVisible(false)
-            runCycle(idx, "generating", text)
-          }, PAUSE_AFTER_TYPE)
+          timeout = setTimeout(() => { phaseRef.current = "generating"; setPhase("generating"); setSiteVisible(false); runCycle(idx, "generating", text) }, PAUSE_AFTER_TYPE)
         }
       } else if (ph === "generating") {
-        timeout = setTimeout(() => {
-          phaseRef.current = "site"
-          setPhase("site")
-          setSiteVisible(true)
-          runCycle(idx, "site", text)
-        }, GENERATE_DURATION)
+        timeout = setTimeout(() => { phaseRef.current = "site"; setPhase("site"); setSiteVisible(true); runCycle(idx, "site", text) }, GENERATE_DURATION)
       } else if (ph === "site") {
-        timeout = setTimeout(() => {
-          phaseRef.current = "deleting"
-          setPhase("deleting")
-          setSiteVisible(false)
-          runCycle(idx, "deleting", text)
-        }, PAUSE_ON_SITE)
+        timeout = setTimeout(() => { phaseRef.current = "deleting"; setPhase("deleting"); setSiteVisible(false); runCycle(idx, "deleting", text) }, PAUSE_ON_SITE)
       } else if (ph === "deleting") {
         if (text.length > 0) {
           const next = text.slice(0, -1)
@@ -246,7 +199,6 @@ export function Hero() {
         }
       }
     }
-
     runCycle(indexRef.current, phaseRef.current, typedText)
     return () => clearTimeout(timeout)
   }, [])
@@ -254,149 +206,122 @@ export function Hero() {
   const currentDemo = DEMOS[demoIndex]
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-      {/* Background */}
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-4 pb-16">
+      <div className="absolute inset-0 -z-10 dot-grid" />
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-        <div className="absolute top-1/4 left-1/4 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/90 to-background" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-primary/8 blur-[120px]" />
+        <div className="absolute top-1/3 left-1/4 h-72 w-72 rounded-full bg-violet-500/8 blur-3xl" />
+        <div className="absolute top-1/3 right-1/4 h-72 w-72 rounded-full bg-blue-500/8 blur-3xl" />
       </div>
 
       <div className="container mx-auto px-4 py-20">
-        <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
+        <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
 
-          <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium">
-            <Zap className="mr-1.5 h-3.5 w-3.5" />
-            Powered by Advanced AI
-          </Badge>
+          <Link href="/auth/signup">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs sm:text-sm font-medium text-primary hover:bg-primary/10 transition-colors cursor-pointer max-w-[90vw] text-center">
+              <Zap className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-primary shrink-0" />
+              <span>Now powered by GPT-4o — faster &amp; smarter</span>
+              <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+            </div>
+          </Link>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight text-balance">
-            Build Stunning Websites{" "}
-            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              in Seconds
-            </span>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-[1.08] text-balance px-2 sm:px-0">
+            Build Any Website{" "}
+            <br className="hidden sm:block" />
+            <span className="gradient-text">in Seconds with AI</span>
           </h1>
 
-          <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-            Transform your ideas into beautiful, responsive websites with the power of AI.
-            No coding required. Just describe what you want.
+          <p className="mt-5 sm:mt-7 text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl sm:max-w-2xl leading-relaxed font-light px-2 sm:px-0">
+            Describe what you want. Our AI builds it — beautiful, responsive, and ready to deploy. No designers, no developers, no waiting.
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto px-2 sm:px-0">
             <Link href="/auth/signup" className="w-full sm:w-auto">
-              <Button size="lg" className="h-12 px-8 text-base w-full sm:w-auto">
+              <Button size="lg" className="h-12 px-6 sm:px-8 text-sm sm:text-base w-full glow font-semibold">
                 <Sparkles className="mr-2 h-4 w-4" />
-                Start Building — 3 Free Credits
+                Start Building Free
               </Button>
             </Link>
             <Link href="#features" className="w-full sm:w-auto">
-              <Button variant="outline" size="lg" className="h-12 px-8 text-base w-full sm:w-auto">
+              <Button variant="outline" size="lg" className="h-12 px-6 sm:px-8 text-sm sm:text-base w-full font-medium">
                 See How It Works
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
 
-          {/* Stats row — wraps cleanly on mobile */}
-          <div className="mt-10 flex flex-wrap justify-center items-center gap-4 sm:gap-8 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
-              <span>10,000+ websites created</span>
+          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {AVATAR_INITIALS.map((initial, i) => (
+                  <div key={i} className={`h-8 w-8 rounded-full ${AVATAR_COLORS[i]} border-2 border-background flex items-center justify-center text-white text-xs font-bold`}>{initial}</div>
+                ))}
+              </div>
+              <div className="text-left">
+                <div className="flex items-center gap-0.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">Loved by 10,000+ builders</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
-              <span>4.9/5 user rating</span>
+            <div className="hidden sm:block h-8 w-px bg-border" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              <span>3 free credits — no card required</span>
             </div>
           </div>
 
-          {/* Animated browser mockup */}
-          <div className="mt-14 w-full max-w-3xl">
-            <div className="rounded-xl border bg-card shadow-2xl overflow-hidden">
-
-              {/* Browser chrome */}
-              <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-3 shrink-0">
+          <div className="mt-12 sm:mt-16 w-full max-w-3xl">
+            <div className="rounded-2xl border border-border/60 bg-card shadow-[0_32px_80px_oklch(0_0_0/0.12)] dark:shadow-[0_32px_80px_oklch(0_0_0/0.5)] overflow-hidden ring-1 ring-border/30">
+              <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-3 shrink-0">
                 <div className="flex gap-1.5">
-                  <div className="h-3 w-3 rounded-full bg-red-500" />
-                  <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                  <div className="h-3 w-3 rounded-full bg-green-500" />
+                  <div className="h-3 w-3 rounded-full bg-red-400" />
+                  <div className="h-3 w-3 rounded-full bg-yellow-400" />
+                  <div className="h-3 w-3 rounded-full bg-green-400" />
                 </div>
                 <div className="flex-1 flex justify-center">
-                  <div className="rounded-md bg-background px-4 py-1 text-xs text-muted-foreground font-mono truncate max-w-[200px] sm:max-w-none">
+                  <div className="rounded-md bg-background/80 border border-border/50 px-4 py-1 text-xs text-muted-foreground font-mono truncate max-w-[200px] sm:max-w-xs">
                     pngwebsitebuilders.site/generate
                   </div>
                 </div>
+                <div className="w-16" />
               </div>
-
-              {/* Prompt bar */}
-              <div className="border-b bg-muted/30 px-4 py-2.5 flex items-center gap-3">
-                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+              <div className="border-b bg-muted/20 px-4 py-3 flex items-center gap-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                </div>
                 <span className="text-sm text-foreground/80 font-mono flex-1 text-left min-h-[1.25rem] truncate">
                   {typedText}
                   <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 align-middle animate-pulse" />
                 </span>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 hidden sm:flex">
-                    {currentDemo.style}
-                  </Badge>
-                  {phase === "generating" && (
-                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                  )}
-                  {phase === "site" && (
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                  )}
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant="outline" className="text-[10px] px-2 py-0 hidden sm:flex border-primary/30 text-primary">{currentDemo.style}</Badge>
+                  {phase === "generating" && <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />}
+                  {phase === "site" && <div className="h-2 w-2 rounded-full bg-green-400" />}
                 </div>
               </div>
-
-              {/* Preview area */}
-              <div className="relative aspect-video overflow-hidden bg-muted/10">
-                {/* Idle / typing state */}
+              <div className="relative aspect-video overflow-hidden bg-muted/5">
                 {(phase === "typing" || phase === "deleting") && !siteVisible && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                    <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10">
-                      <Sparkles className="h-7 w-7 text-primary" />
+                    <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/8 ring-1 ring-primary/20">
+                      <Sparkles className="h-8 w-8 text-primary" />
                     </div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {phase === "typing" ? "Describe your website above..." : "Starting next generation..."}
-                    </p>
-                    <p className="text-xs text-muted-foreground/60">
-                      Fully responsive, modern, and ready to deploy
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">{phase === "typing" ? "Describe your website above..." : "Starting next generation..."}</p>
+                    <p className="text-xs text-muted-foreground/50">Fully responsive · Modern design · Ready to deploy</p>
                   </div>
                 )}
-
-                {/* Generating state */}
                 {phase === "generating" && <GeneratingOverlay />}
-
-                {/* Generated website */}
-                <div
-                  className="absolute inset-0 transition-all duration-700"
-                  style={{
-                    opacity: siteVisible ? 1 : 0,
-                    transform: siteVisible ? "translateY(0)" : "translateY(12px)",
-                  }}
-                >
-                  {phase === "site" && (
-                    <MockWebsite site={currentDemo.site} visible={siteVisible} />
-                  )}
+                <div className="absolute inset-0 transition-all duration-700" style={{ opacity: siteVisible ? 1 : 0, transform: siteVisible ? "translateY(0)" : "translateY(14px)" }}>
+                  {phase === "site" && <MockWebsite site={currentDemo.site} visible={siteVisible} />}
                 </div>
               </div>
             </div>
-
-            {/* Cycle indicator dots */}
-            <div className="flex items-center justify-center gap-2 mt-4">
+            <div className="flex items-center justify-center gap-2 mt-5">
               {DEMOS.map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-full transition-all duration-300"
-                  style={{
-                    width: i === demoIndex ? 20 : 6,
-                    height: 6,
-                    background:
-                      i === demoIndex
-                        ? "hsl(var(--primary))"
-                        : "hsl(var(--muted-foreground) / 0.3)",
-                  }}
-                />
+                <div key={i} className="rounded-full transition-all duration-300" style={{ width: i === demoIndex ? 22 : 6, height: 6, background: i === demoIndex ? "oklch(0.52 0.27 262)" : "oklch(0.52 0.27 262 / 0.25)" }} />
               ))}
             </div>
           </div>
