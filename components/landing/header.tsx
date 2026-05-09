@@ -25,15 +25,15 @@ export function Header() {
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
 
-            <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <Link href="/" className="flex items-center gap-2 shrink-0">
               <Image
                 src="https://i.8upload.com/image/51e2eb5f6dbfb126/photo-2026-05-08-21-05-11.webp"
                 alt="PNG Website Builders"
-                width={36}
-                height={36}
-                className="rounded-lg object-contain"
+                width={28}
+                height={28}
+                className="rounded-lg object-contain sm:w-9 sm:h-9"
               />
-              <span className="text-base sm:text-lg font-bold tracking-tight whitespace-nowrap">
+              <span className="text-sm sm:text-lg font-bold tracking-tight whitespace-nowrap">
                 PNG Website Builders
               </span>
             </Link>
