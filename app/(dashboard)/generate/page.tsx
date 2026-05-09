@@ -391,7 +391,6 @@ export default function GeneratePage() {
     setEditMode(false)
 
     try {
-      // Step 1: generate and save to DB
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -406,7 +405,6 @@ export default function GeneratePage() {
       const result = await res.json()
       const slug: string = result.previewSlug
 
-      // Step 2: fetch the saved HTML back from the preview endpoint
       const htmlRes = await fetch(`/api/preview/${slug}`)
       if (!htmlRes.ok) throw new Error("Failed to load preview")
       const html = await htmlRes.text()
@@ -575,7 +573,6 @@ export default function GeneratePage() {
 
           {/* RIGHT PANEL */}
           <div className="flex-1 flex flex-col">
-            {/* TOP TOOLBAR */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-[#161b22]">
               <span className="text-xs text-white/40 font-mono">
                 {stage === "generating" ? "● generating..." : `preview/${previewSlug}`}
@@ -617,7 +614,6 @@ export default function GeneratePage() {
               </div>
             </div>
 
-            {/* PREVIEW AREA */}
             <div className="flex-1 overflow-auto flex items-start justify-center bg-[#0d1117]">
               {stage === "generating" ? (
                 <TerminalLoader projectName={submittedData?.name ?? "your website"} />
@@ -840,11 +836,18 @@ export default function GeneratePage() {
                   <RadioGroupItem value={style.value} id={style.value} className="peer sr-only" />
                   <Label
                     htmlFor={style.value}
-                    className="flex flex-col gap-1 rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-gray-400 peer-data-[state=checked]:bg-gray-100 dark:peer-data-[state=checked]:border-gray-500 dark:peer-data-[state=checked]:bg-gray-800/50 cursor-pointer transition-colors"
+                    className={cn(
+                      "flex flex-col gap-1 rounded-lg border-2 p-4 cursor-pointer transition-colors",
+                      selectedStyle === style.value
+                        ? "border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800/60"
+                        : "border-muted bg-popover hover:bg-accent hover:text-accent-foreground"
+                    )}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{style.label}</span>
-                      {selectedStyle === style.value && <Badge variant="secondary" className="text-xs">Selected</Badge>}
+                      {selectedStyle === style.value && (
+                        <Badge variant="secondary" className="text-xs">Selected</Badge>
+                      )}
                     </div>
                     <span className="text-xs text-muted-foreground">{style.description}</span>
                   </Label>
