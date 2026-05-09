@@ -102,7 +102,7 @@ Return the complete HTML document starting with <!DOCTYPE html>.`
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://pngwebsitebuilders.site",
-        "X-Title": "SiteForge AI",
+        "X-Title": "PNG Website Builders",
       },
       body: JSON.stringify({
         model: "openrouter/auto",
