@@ -391,6 +391,7 @@ export default function GeneratePage() {
     setEditMode(false)
 
     try {
+      // Step 1: generate and save to DB
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -403,8 +404,15 @@ export default function GeneratePage() {
       }
 
       const result = await res.json()
-      setGeneratedHtml(result.html)
-      setPreviewSlug(result.slug)
+      const slug: string = result.previewSlug
+
+      // Step 2: fetch the saved HTML back from the preview endpoint
+      const htmlRes = await fetch(`/api/preview/${slug}`)
+      if (!htmlRes.ok) throw new Error("Failed to load preview")
+      const html = await htmlRes.text()
+
+      setGeneratedHtml(html)
+      setPreviewSlug(slug)
       setCredits((c) => (c !== null ? c - 1 : null))
       setStage("preview")
     } catch (err) {
