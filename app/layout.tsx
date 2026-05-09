@@ -16,17 +16,17 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'SiteForge AI - Build Stunning Websites with AI',
+  title: 'PNG Website Builders - Build Stunning Websites with AI',
   description: 'Create beautiful, responsive websites in seconds using the power of AI. No coding required. Start with 3 free credits.',
   keywords: ['AI website builder', 'website generator', 'AI web design', 'no-code website'],
   openGraph: {
-    title: 'SiteForge AI - Build Stunning Websites with AI',
+    title: 'PNG Website Builders - Build Stunning Websites with AI',
     description: 'Create beautiful, responsive websites in seconds using the power of AI.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SiteForge AI - Build Stunning Websites with AI',
+    title: 'PNG Website Builders - Build Stunning Websites with AI',
     description: 'Create beautiful, responsive websites in seconds using the power of AI.',
   },
 }
