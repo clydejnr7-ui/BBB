@@ -33,8 +33,8 @@ export function Header() {
                 height={36}
                 className="rounded-lg object-contain"
               />
-              <span className="text-base sm:text-lg font-bold tracking-tight truncate max-w-[140px] sm:max-w-none">
-                PNG Website Builders
+              <span className="text-base sm:text-lg font-bold tracking-tight whitespace-nowrap">
+               PNG Website Builders
               </span>
             </Link>
 
