@@ -1,4 +1,4 @@
-  "use client"
+"use client"
 
 import { useState, useEffect, useRef } from "react"
 import { useForm } from "react-hook-form"
@@ -240,11 +240,11 @@ function TerminalLoader({ projectName }: { projectName: string }) {
             <div className="w-3 h-3 rounded-full bg-[#28c840]" />
           </div>
           <span className="flex-1 text-center text-xs text-white/30 font-mono">
-            siteforge — generating {projectName}
+            png website builders — generating {projectName}
           </span>
         </div>
         <div className="bg-[#0d1117] p-5 h-72 overflow-y-auto font-mono text-sm space-y-1">
-          <p className="text-white/30 mb-3 text-xs">SiteForge AI v2.0 — Website Generator</p>
+          <p className="text-white/30 mb-3 text-xs">PNG Website Builders AI — Website Generator</p>
           {visibleLogs.map((log, i) => (
             <p key={i} className={cn("leading-relaxed animate-fadeIn", log.color)}>{log.text}</p>
           ))}
@@ -446,7 +446,7 @@ export default function GeneratePage() {
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
                   <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
                 </div>
-                <span className="font-semibold text-white text-sm">SiteForge AI</span>
+                <span className="font-semibold text-white text-sm">PNG Website Builders</span>
               </div>
               <button
                 onClick={() => { setStage("form"); setEditMode(false) }}
@@ -505,7 +505,6 @@ export default function GeneratePage() {
             <div className="px-4 py-4 border-t border-white/10 space-y-2">
               {stage === "preview" && (
                 <>
-                  {/* Deploy */}
                   <Button
                     size="sm"
                     className="w-full justify-start gap-2 bg-green-600 hover:bg-green-500 text-white border-0"
@@ -515,7 +514,6 @@ export default function GeneratePage() {
                     Deploy Site
                   </Button>
 
-                  {/* Edit toggle */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -529,7 +527,6 @@ export default function GeneratePage() {
                     {editMode ? "Exit Edit Mode" : "Edit Content"}
                   </Button>
 
-                  {/* Save */}
                   {editMode && (
                     <Button
                       size="sm"
@@ -851,4 +848,4 @@ export default function GeneratePage() {
       </form>
     </div>
   )
-}
+}  
