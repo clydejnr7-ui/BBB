@@ -569,16 +569,13 @@ export default function GeneratePage() {
           <div className="flex-1 flex flex-col">
             {/* TOP TOOLBAR */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-[#161b22]">
-              {/* Left: preview URL / status */}
               <span className="text-xs text-white/40 font-mono">
                 {stage === "generating" ? "● generating..." : `preview/${previewSlug}`}
               </span>
 
-              {/* Right: device switcher + Deploy button */}
               <div className="flex items-center gap-2">
                 {stage === "preview" && (
                   <>
-                    {/* Device switcher */}
                     <div className="flex items-center gap-1">
                       {(["desktop", "tablet", "mobile"] as DeviceType[]).map((d) => {
                         const Icon = d === "desktop" ? Monitor : d === "tablet" ? Tablet : Smartphone
@@ -597,10 +594,8 @@ export default function GeneratePage() {
                       })}
                     </div>
 
-                    {/* Divider */}
                     <div className="h-4 w-px bg-white/10" />
 
-                    {/* Deploy button — top right */}
                     <Button
                       size="sm"
                       className="gap-1.5 bg-green-600 hover:bg-green-500 text-white border-0 font-semibold shadow-lg shadow-green-900/30 transition-all"
@@ -837,7 +832,7 @@ export default function GeneratePage() {
                   <RadioGroupItem value={style.value} id={style.value} className="peer sr-only" />
                   <Label
                     htmlFor={style.value}
-                    className="flex flex-col gap-1 rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-colors"
+                    className="flex flex-col gap-1 rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-gray-400 peer-data-[state=checked]:bg-gray-100 dark:peer-data-[state=checked]:border-gray-500 dark:peer-data-[state=checked]:bg-gray-800/50 cursor-pointer transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{style.label}</span>
