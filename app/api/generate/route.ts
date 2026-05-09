@@ -398,7 +398,8 @@ REQUIRED SECTIONS (8 total)
 ═══════════════════════════════════════════
 
 1. NAVBAR — fixed, glass morphism, Alpine.js mobile menu
-   style="position:fixed;top:0;width:100%;backdrop-filter:blur(20px);background:${theme.navBg};z-index:50"
+   style="position:fixed;top:0;width:100%;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:${theme.navBg};z-index:9999"
+   CRITICAL: Never add z-index, transform, filter, will-change, or isolation to the <section> or <div> that wraps the hero image. These create stacking contexts that bury the fixed navbar.
 
 2. HERO — full viewport, NO fade-in
    - Full-screen image height:100vh
