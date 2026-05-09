@@ -1,14 +1,14 @@
 import { Star, Quote } from "lucide-react"
 
 const testimonials = [
-  { name: "Sarah Chen", role: "Startup Founder", content: "SiteForge saved me weeks of development time. I had a professional landing page for my startup in under 5 minutes. Absolutely incredible!", initials: "SC", color: "bg-violet-500" },
+  { name: "Sarah Chen", role: "Startup Founder", content: "PNG Website Builders saved me weeks of development time. I had a professional landing page for my startup in under 5 minutes. Absolutely incredible!", initials: "SC", color: "bg-violet-500" },
   { name: "Marcus Johnson", role: "Freelance Designer", content: "The AI understands design principles better than most developers I have worked with. The generated code is clean and easy to customise.", initials: "MJ", color: "bg-blue-500" },
-  { name: "Emily Rodriguez", role: "Marketing Manager", content: "We use SiteForge for all our campaign landing pages now. It is fast, the results are beautiful, and our conversion rates have improved significantly.", initials: "ER", color: "bg-emerald-500" },
+  { name: "Emily Rodriguez", role: "Marketing Manager", content: "We use PNG Website Builders for all our campaign landing pages now. It is fast, the results are beautiful, and our conversion rates have improved significantly.", initials: "ER", color: "bg-emerald-500" },
   { name: "David Kim", role: "Agency Owner", content: "This tool has transformed how our agency works. We can prototype ideas instantly and deliver to clients faster than ever before.", initials: "DK", color: "bg-orange-500" },
-  { name: "Lisa Thompson", role: "E-commerce Owner", content: "I was skeptical about AI-generated websites, but SiteForge blew me away. My product pages look professional and convert really well.", initials: "LT", color: "bg-rose-500" },
-  { name: "Alex Patel", role: "Tech Entrepreneur", content: "The responsive designs are perfect on every device. I have tried other AI tools, but SiteForge is in a league of its own.", initials: "AP", color: "bg-indigo-500" },
+  { name: "Lisa Thompson", role: "E-commerce Owner", content: "I was skeptical about AI-generated websites, but PNG Website Builders blew me away. My product pages look professional and convert really well.", initials: "LT", color: "bg-rose-500" },
+  { name: "Alex Patel", role: "Tech Entrepreneur", content: "The responsive designs are perfect on every device. I have tried other AI tools, but PNG Website Builders is in a league of its own.", initials: "AP", color: "bg-indigo-500" },
   { name: "Priya Nair", role: "Product Designer", content: "What used to take a full day now takes minutes. The quality of the output is stunning — clients think I hired an entire design team.", initials: "PN", color: "bg-teal-500" },
-  { name: "James O'Brien", role: "Small Business Owner", content: "I have no technical background whatsoever, and I built a website I'm genuinely proud of. SiteForge is magic.", initials: "JO", color: "bg-amber-500" },
+  { name: "James O'Brien", role: "Small Business Owner", content: "I have no technical background whatsoever, and I built a website I'm genuinely proud of. PNG Website Builders is magic.", initials: "JO", color: "bg-amber-500" },
 ]
 
 function TestimonialCard({ t }: { t: typeof testimonials[0] }) {
