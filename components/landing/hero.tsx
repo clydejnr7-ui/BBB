@@ -221,7 +221,7 @@ export function Hero() {
           <Link href="/auth/signup">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs sm:text-sm font-medium text-primary hover:bg-primary/10 transition-colors cursor-pointer max-w-[90vw] text-center">
               <Zap className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-primary shrink-0" />
-              <span>Now powered by GPT-4o — faster &amp; smarter</span>
+              <span>Now powered by HatwokMan Agent — faster &amp; smarter</span>
               <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
             </div>
           </Link>
