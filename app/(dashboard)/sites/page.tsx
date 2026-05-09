@@ -3,8 +3,9 @@ import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles, ExternalLink, Trash2 } from "lucide-react"
+import { Sparkles, ExternalLink } from "lucide-react"
 import { DeleteSiteButton } from "@/components/dashboard/delete-site-button"
+import { DomainManager } from "@/components/dashboard/domain-manager"
 
 export default async function SitesPage() {
   const supabase = await createClient()
@@ -51,10 +52,19 @@ export default async function SitesPage() {
                 </div>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col justify-end">
-                <div className="pt-4 border-t">
-                  <p className="text-xs text-muted-foreground mb-3">
+                <div className="pt-4 border-t space-y-3">
+                  <p className="text-xs text-muted-foreground">
                     Created {new Date(site.created_at).toLocaleDateString()}
                   </p>
+
+                  {/* Custom Domain Manager */}
+                  <DomainManager
+                    siteId={site.id}
+                    initialDomain={site.custom_domain}
+                    initialVerified={site.domain_verified}
+                  />
+
+                  {/* Actions */}
                   <div className="flex items-center gap-2">
                     <Link href={`/preview/${site.preview_slug}`} className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">
