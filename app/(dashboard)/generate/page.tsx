@@ -385,6 +385,7 @@ export default function GeneratePage() {
     setSavedOk(false)
   }
 
+  // FIX: API returns { previewSlug } — fetch HTML separately from /api/preview/[slug]
   async function runGeneration(data: GenerateForm) {
     setSubmittedData(data)
     setStage("generating")
@@ -404,9 +405,11 @@ export default function GeneratePage() {
 
       const result = await res.json()
       const slug: string = result.previewSlug
+      if (!slug) throw new Error("No preview slug returned")
 
+      // Fetch the actual HTML from the preview endpoint
       const htmlRes = await fetch(`/api/preview/${slug}`)
-      if (!htmlRes.ok) throw new Error("Failed to load preview")
+      if (!htmlRes.ok) throw new Error("Could not load preview HTML")
       const html = await htmlRes.text()
 
       setGeneratedHtml(html)
@@ -573,14 +576,18 @@ export default function GeneratePage() {
 
           {/* RIGHT PANEL */}
           <div className="flex-1 flex flex-col">
+            {/* TOP TOOLBAR */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/10 bg-[#161b22]">
+              {/* Left: preview URL / status */}
               <span className="text-xs text-white/40 font-mono">
                 {stage === "generating" ? "● generating..." : `preview/${previewSlug}`}
               </span>
 
+              {/* Right: device switcher + Deploy button */}
               <div className="flex items-center gap-2">
                 {stage === "preview" && (
                   <>
+                    {/* Device switcher */}
                     <div className="flex items-center gap-1">
                       {(["desktop", "tablet", "mobile"] as DeviceType[]).map((d) => {
                         const Icon = d === "desktop" ? Monitor : d === "tablet" ? Tablet : Smartphone
@@ -599,8 +606,10 @@ export default function GeneratePage() {
                       })}
                     </div>
 
+                    {/* Divider */}
                     <div className="h-4 w-px bg-white/10" />
 
+                    {/* Deploy button — top right */}
                     <Button
                       size="sm"
                       className="gap-1.5 bg-green-600 hover:bg-green-500 text-white border-0 font-semibold shadow-lg shadow-green-900/30 transition-all"
@@ -614,6 +623,7 @@ export default function GeneratePage() {
               </div>
             </div>
 
+            {/* PREVIEW AREA */}
             <div className="flex-1 overflow-auto flex items-start justify-center bg-[#0d1117]">
               {stage === "generating" ? (
                 <TerminalLoader projectName={submittedData?.name ?? "your website"} />
@@ -833,13 +843,14 @@ export default function GeneratePage() {
             >
               {styleOptions.map((style) => (
                 <div key={style.value}>
-                  <RadioGroupItem value={style.value} id={style.value} className="peer sr-only" />
+                  {/* sr-only hides the blue radio dot — selection is driven by the Label's cn() below */}
+                  <RadioGroupItem value={style.value} id={style.value} className="sr-only" />
                   <Label
                     htmlFor={style.value}
                     className={cn(
                       "flex flex-col gap-1 rounded-lg border-2 p-4 cursor-pointer transition-colors",
                       selectedStyle === style.value
-                        ? "border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800/60"
+                        ? "border-gray-400 bg-gray-100 text-gray-900"
                         : "border-muted bg-popover hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
@@ -849,7 +860,12 @@ export default function GeneratePage() {
                         <Badge variant="secondary" className="text-xs">Selected</Badge>
                       )}
                     </div>
-                    <span className="text-xs text-muted-foreground">{style.description}</span>
+                    <span className={cn(
+                      "text-xs",
+                      selectedStyle === style.value ? "text-gray-500" : "text-muted-foreground"
+                    )}>
+                      {style.description}
+                    </span>
                   </Label>
                 </div>
               ))}
