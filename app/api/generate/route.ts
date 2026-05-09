@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     const theme = styleThemes[style] || styleThemes.modern
     const slug = name.toLowerCase().replace(/\s+/g, "-")
 
-    const systemPrompt = `You are a world-class UI/UX designer and senior frontend developer at a top-tier agency. Your job is to produce stunning, professional, premium websites that look like they were built by a $50,000 agency. Every site you produce should be immediately impressive.
+    const systemPrompt = `You are a world-class UI/UX designer and senior frontend developer at a top-tier agency. Produce a stunning, professional, premium website. Every site should look like it cost $50,000 to build.
 
 PROJECT:
 - Name: ${name}
@@ -135,14 +135,34 @@ PROJECT:
 OUTPUT: Return ONLY a complete HTML document starting with <!DOCTYPE html>. No markdown, no code fences, no explanation.
 
 ═══════════════════════════════════════════
-TECH STACK
+HEAD — exact order matters
 ═══════════════════════════════════════════
-- Tailwind CSS: <script src="https://cdn.tailwindcss.com"></script>
-- Google Fonts: <link href="https://fonts.googleapis.com/css2?family=${theme.fonts}&display=swap" rel="stylesheet">
-- Alpine.js: <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+1. Meta tags (charset, viewport, description, title)
+2. Google Fonts link
+3. Tailwind config script (MUST come BEFORE Tailwind CDN):
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '${theme.primary}',
+          'primary-dark': '${theme.primaryDark}',
+          accent: '${theme.accent}',
+          surface: '${theme.surface}',
+          'theme-bg': '${theme.bg}',
+          'theme-text': '${theme.text}',
+          'theme-muted': '${theme.textMuted}',
+        }
+      }
+    }
+  }
+</script>
+4. Tailwind CDN: <script src="https://cdn.tailwindcss.com"></script>
+5. Alpine.js: <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+6. <style> block with CSS variables and custom classes
 
 ═══════════════════════════════════════════
-DESIGN SYSTEM — define these in <style>
+DESIGN SYSTEM — CSS variables in <style>
 ═══════════════════════════════════════════
 :root {
   --primary: ${theme.primary};
@@ -163,153 +183,200 @@ DESIGN SYSTEM — define these in <style>
 }
 body { font-family: var(--body-font); background: var(--bg); color: var(--text); scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
 h1,h2,h3,h4 { font-family: var(--heading-font); }
-.fade-in { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+
+/* Fade-in animation */
+.fade-in { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
 .fade-in.visible { opacity: 1; transform: translateY(0); }
-.fade-in-delay-1 { transition-delay: 0.1s; }
-.fade-in-delay-2 { transition-delay: 0.2s; }
-.fade-in-delay-3 { transition-delay: 0.3s; }
-.fade-in-delay-4 { transition-delay: 0.4s; }
+.delay-1 { transition-delay: 0.1s; }
+.delay-2 { transition-delay: 0.2s; }
+.delay-3 { transition-delay: 0.3s; }
+.delay-4 { transition-delay: 0.4s; }
+
+/* Gradient text utility */
+.gradient-text {
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
+}
+
+/* Gradient accent bar */
+.accent-bar {
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: var(--gradient);
+  border-radius: 9999px;
+  margin: 12px auto 0;
+}
+
+/* Card hover */
+.hover-lift { transition: transform var(--transition), box-shadow var(--transition); }
+.hover-lift:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); }
+
+/* Nav link underline animation */
+.nav-link { position: relative; }
+.nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: var(--primary); transition: width 0.3s ease; }
+.nav-link:hover::after { width: 100%; }
 
 ═══════════════════════════════════════════
-IMAGES — Picsum Photos (always reliable)
+COLOR USAGE — CRITICAL RULES
+═══════════════════════════════════════════
+ALWAYS use Tailwind color classes with the exact names from tailwind.config above.
+These are the ONLY valid custom color classes:
+- text-primary         → uses ${theme.primary}
+- text-primary-dark    → uses ${theme.primaryDark}
+- text-accent          → uses ${theme.accent}
+- text-surface         → uses ${theme.surface}
+- text-theme-text      → uses ${theme.text}
+- text-theme-muted     → uses ${theme.textMuted}
+- bg-primary           → background ${theme.primary}
+- bg-surface           → background ${theme.surface}
+- bg-theme-bg          → background ${theme.bg}
+- border-primary       → border ${theme.primary}
+
+NEVER use: text-muted, text-text-muted, text-text, bg-bg, bg-muted — these do not exist.
+For muted/secondary text: use text-theme-muted
+For body text color: use text-theme-text or just rely on body CSS (already set to var(--text))
+For gradient text on headings: use class="gradient-text" (defined in CSS above)
+
+═══════════════════════════════════════════
+IMAGES — Picsum Photos
 ═══════════════════════════════════════════
 URL format: https://picsum.photos/seed/{seed}/{width}/{height}
+Use descriptive, unique seeds for every image based on the site topic.
+Example seeds for "${name}": ${slug}-hero, ${slug}-f1, ${slug}-f2, ${slug}-f3, ${slug}-f4, ${slug}-g1, ${slug}-g2, ${slug}-g3, ${slug}-g4, ${slug}-t1, ${slug}-t2
 
-Rules:
-- {seed} must be a descriptive word or phrase tied directly to the image content and site topic
-- Use different unique seeds for every single image so no two images are the same
-- Derive seeds from the site's subject matter — if it's a travel site, use seeds like "jungle", "beach", "waterfall", "reef", "village"; if it's a restaurant, use "food", "dining", "chef", "kitchen", "dessert"
-- Seeds are case-sensitive strings — keep them lowercase, no spaces (use hyphens)
-- Required images with example seeds for a site about "${name}":
-  - Hero (1400x700): seed = "${slug}-hero"
-  - Feature card 1 (800x500): seed = "${slug}-feature1"
-  - Feature card 2 (800x500): seed = "${slug}-feature2"
-  - Feature card 3 (800x500): seed = "${slug}-feature3"
-  - Feature card 4 (800x500): seed = "${slug}-feature4"
-  - Gallery image 1 (600x400): seed = "${slug}-gallery1"
-  - Gallery image 2 (600x400): seed = "${slug}-gallery2"
-  - Gallery image 3 (600x400): seed = "${slug}-gallery3"
-  - Gallery image 4 (600x400): seed = "${slug}-gallery4"
-  - About/team (400x500): seed = "${slug}-team1"
-  - About/team (400x500): seed = "${slug}-team2"
-
-Image CSS rules (non-negotiable — follow exactly):
+Image CSS rules (non-negotiable):
 - Every <img>: class="w-full h-full object-cover block"
-- Every image container: explicit height ALWAYS (style="height:Xpx" or Tailwind h-64 / h-72 / h-80 / h-96)
-- NEVER put an image in a container without an explicit height
+- Every image container: explicit height ALWAYS (style="height:Xpx" or h-64/h-72/h-80/h-96)
 - Hero container: style="height:100vh" class="relative w-full overflow-hidden"
 - Card image containers: style="height:240px" class="w-full overflow-hidden"
-- Gallery large image: style="height:480px"
-- Gallery small images: style="height:230px"
-- Add loading="lazy" and descriptive alt text on every image
+- Gallery large: style="height:480px" | Gallery small: style="height:230px"
+- loading="lazy" and descriptive alt on every image
 
 ═══════════════════════════════════════════
-REQUIRED SECTIONS (all 8, in this order)
+REQUIRED SECTIONS (8 total, in this order)
 ═══════════════════════════════════════════
 
-1. NAVBAR — sticky, glass morphism
-   - position: fixed; top: 0; width: 100%; backdrop-filter: blur(20px); background: ${theme.navBg}; z-index: 50
-   - Logo: business name in heading font, bold, with a small colored dot or accent
-   - Desktop nav links with smooth hover underline animation
-   - Mobile hamburger (Alpine.js x-data toggle, animated)
-   - CTA button: rounded-full, px-6 py-2.5, gradient background, font-semibold
+1. NAVBAR — sticky glass morphism
+   - style="position:fixed;top:0;width:100%;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:${theme.navBg};z-index:50"
+   - Logo: heading font, font-black, text-primary with small accent dot
+   - Desktop nav: links with class="nav-link text-theme-muted hover:text-primary"
+   - Mobile: Alpine.js x-data="{ open: false }" hamburger
+   - CTA: rounded-full bg-primary text-white px-6 py-2.5 font-semibold hover:bg-primary-dark transition
 
-2. HERO — full viewport, cinematic
-   - Full-screen background image (height: 100vh, object-cover)
-   - Overlay: ${theme.heroOverlay}
-   - Eyebrow label: small uppercase text, letter-spacing, primary color
-   - Main heading: text-6xl md:text-8xl, font-black, tracking-tight
-   - Gradient text on 1-2 key words: background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text
-   - Subheadline: text-xl, muted color, max-w-2xl, leading-relaxed
-   - Two CTAs: primary (gradient background) + secondary (glass outline)
-   - Animated scroll indicator at bottom (CSS bouncing chevron)
-   - Add class="fade-in" to heading and subtext
+2. HERO — full viewport, cinematic (DO NOT add fade-in to hero text — it must be visible immediately)
+   - Full-screen image (height:100vh, object-cover)
+   - Overlay: style="background:${theme.heroOverlay}"
+   - Eyebrow: small uppercase text-accent tracking-widest font-semibold
+   - Heading: text-6xl md:text-8xl font-black tracking-tight — use class="gradient-text" on key words
+   - Subheadline: text-xl text-theme-muted max-w-2xl leading-relaxed (use text-white/80 if on dark overlay)
+   - Two CTAs: primary gradient button + glass outline button
+   - Scroll indicator: CSS bouncing arrow at bottom
 
-3. STATS / NUMBERS — social proof
-   - Full-width contrasting band (primary or dark surface bg)
-   - 4 meaningful stats with: large number (text-5xl, font-black, class="counter" data-target="X" data-suffix="+"), label below
-   - Numbers relevant to the business type
-   - Subtle vertical dividers between stats on desktop
+3. STATS — social proof band
+   - Contrasting background (bg-primary or dark surface)
+   - 4 stats: <span class="counter text-5xl font-black" data-target="NUMBER" data-suffix="+">0</span>
+   - Label below each: text-sm text-white/70
 
-4. FEATURES / SERVICES — 4 cards
-   - Centered section heading with gradient accent bar underneath
-   - Eyebrow label above heading
-   - 2x2 grid (desktop), 1-col (mobile)
-   - Each card: image top + icon badge + bold title + description
-   - Hover: transform: translateY(-8px) + box-shadow upgrade
-   - Card border: 1px solid rgba(255,255,255,0.06) (or light version for light themes)
+4. FEATURES — 4 cards
+   - Centered heading + accent-bar + eyebrow
+   - 2x2 grid desktop / 1-col mobile
+   - Each card: image top + title + description, class="hover-lift"
+   - Card bg: bg-surface, border border-white/10 (dark) or border-gray-100 (light), rounded-2xl overflow-hidden
 
-5. GALLERY / SHOWCASE — asymmetric layout
-   - One large image left + three smaller images right (or 2+2 offset)
-   - rounded-2xl on all containers, overflow-hidden
-   - Hover overlay with caption text (opacity transition)
-   - "View Gallery" link at bottom
+5. GALLERY — asymmetric layout
+   - Large image left (height:480px) + 3 small images right (height:230px) in a 2-col grid
+   - All rounded-2xl overflow-hidden
+   - Hover: dark overlay with caption text (group/group-hover pattern)
 
 6. TESTIMONIALS — 3 cards
-   - Large quote mark (SVG or CSS), review text, 5-star SVG rating
-   - Avatar: CSS gradient circle with initials, name, title/company below
-   - Cards: surface background, subtle border, rounded-2xl
+   - Large SVG quote mark, star rating (5 gold stars inline SVG), review text
+   - Avatar: gradient circle div with initials, name, role
+   - bg-surface border border-white/10 rounded-2xl p-8
 
-7. CALL TO ACTION — conversion
-   - Full-width, gradient background (var(--gradient))
-   - Bold headline, subtext, large white CTA button
-   - Optional: subtle dot-grid or noise overlay using CSS background-image
+7. CTA SECTION
+   - style="background:var(--gradient)"
+   - Bold heading (white), subtext (white/80), white filled CTA button
+   - Optional CSS dot-grid overlay
 
-8. FOOTER — complete, multi-column
-   - Dark background, 4 columns: logo+desc, navigation, services, contact
-   - Social icons (Twitter/X, Instagram, LinkedIn, Facebook) as inline SVG in bordered circles
-   - Bottom bar with copyright and "Built with PNG Website Builders"
-
-═══════════════════════════════════════════
-PREMIUM QUALITY RULES
-═══════════════════════════════════════════
-- Section padding: py-24 minimum, py-32 for hero and CTA
-- All content inside: max-w-7xl mx-auto px-6
-- Buttons: rounded-full, px-8 py-4, font-semibold, hover:scale-105 + transition
-- Gradient button: background: var(--gradient); color: white
-- Glass button: border: 2px solid rgba(255,255,255,0.3); backdrop-filter: blur(8px); color: white
-- Every section has an eyebrow label (small, uppercase, letter-spacing-widest, primary color)
-- Gradient accent divider after each section subtitle: a 3px × 60px bar, background: var(--gradient), border-radius: 9999px, centered
-- Section headings: text-4xl md:text-5xl, font-black, tracking-tight
-- Add class="fade-in fade-in-delay-X" to cards and images for staggered reveal
+8. FOOTER — multi-column professional
+   - Dark bg (or theme-bg), 4 columns: logo+tagline, nav links, services, contact
+   - Social icons as SVG inside bordered circles
+   - Bottom bar: "© 2025 ${name}. All rights reserved." + "Built with PNG Website Builders"
 
 ═══════════════════════════════════════════
-SCRIPTS (add before </body>)
+SCRIPTS — add BEFORE </body>
 ═══════════════════════════════════════════
 <script>
-  // Scroll fade-in
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(el => { if (el.isIntersecting) { el.target.classList.add('visible'); observer.unobserve(el.target); } });
-  }, { threshold: 0.15 });
-  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+  // Fade-in: handle both in-viewport and below-fold elements
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.05 });
+
+  document.querySelectorAll('.fade-in').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight) {
+      el.classList.add('visible'); // Already in viewport — show immediately
+    } else {
+      revealObserver.observe(el);
+    }
+  });
+
+  // Safety fallback: ensure all fade-in elements visible after 1.2s
+  setTimeout(() => {
+    document.querySelectorAll('.fade-in').forEach(el => el.classList.add('visible'));
+  }, 1200);
 
   // Navbar scroll shadow
-  const nav = document.querySelector('nav');
-  window.addEventListener('scroll', () => {
-    nav.style.boxShadow = window.scrollY > 60 ? '0 4px 30px rgba(0,0,0,0.25)' : 'none';
-  });
+  const navbar = document.querySelector('nav');
+  if (navbar) {
+    window.addEventListener('scroll', () => {
+      navbar.style.boxShadow = window.scrollY > 60 ? '0 4px 30px rgba(0,0,0,0.25)' : 'none';
+    });
+  }
 
   // Animated counters
   document.querySelectorAll('.counter').forEach(el => {
-    const target = parseInt(el.getAttribute('data-target'));
+    const target = parseInt(el.getAttribute('data-target') || '0');
     const suffix = el.getAttribute('data-suffix') || '';
-    const step = target / 120;
+    const duration = 2000;
+    const step = target / (duration / 16);
     let current = 0;
-    const counterObs = new IntersectionObserver((entries) => {
+    const cObs = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
         const timer = setInterval(() => {
           current += step;
           if (current >= target) { current = target; clearInterval(timer); }
           el.textContent = Math.floor(current).toLocaleString() + suffix;
         }, 16);
-        counterObs.unobserve(el);
+        cObs.unobserve(el);
       }
     });
-    counterObs.observe(el);
+    cObs.observe(el);
   });
 </script>
 
-Return the COMPLETE HTML document. Make it so impressive that a user's first reaction is "wow".`
+═══════════════════════════════════════════
+PREMIUM QUALITY RULES
+═══════════════════════════════════════════
+- Section padding: py-24 minimum (py-32 for hero and CTA)
+- All content: max-w-7xl mx-auto px-6
+- Every section has an eyebrow label (text-xs uppercase tracking-widest font-semibold text-accent)
+- Every section subtitle has a class="accent-bar" span immediately after it
+- Buttons: rounded-full px-8 py-4 font-semibold hover:scale-105 transition-transform
+- Add class="fade-in delay-X" to cards and below-fold sections (NOT hero content)
+- Section headings: text-4xl md:text-5xl font-black tracking-tight
+- Make it so impressive the user's first reaction is "wow"
+
+Return the COMPLETE HTML document starting with <!DOCTYPE html>.`
 
     const response = await fetch(`${process.env.OPENROUTER_BASE_URL}/chat/completions`, {
       method: "POST",
@@ -334,21 +401,12 @@ Return the COMPLETE HTML document. Make it so impressive that a user's first rea
     if (!response.ok) {
       const errorData = await response.json()
       console.error("OpenRouter error:", response.status, errorData)
-
       if (response.status === 429) {
-        return NextResponse.json(
-          { error: "AI is rate limited. Please wait 30 seconds and try again." },
-          { status: 429 }
-        )
+        return NextResponse.json({ error: "AI is rate limited. Please wait 30 seconds and try again." }, { status: 429 })
       }
-
       if (response.status === 503 || response.status === 502) {
-        return NextResponse.json(
-          { error: "AI service is temporarily unavailable. Please try again shortly." },
-          { status: 503 }
-        )
+        return NextResponse.json({ error: "AI service is temporarily unavailable. Please try again shortly." }, { status: 503 })
       }
-
       return NextResponse.json({ error: "Failed to generate website" }, { status: 500 })
     }
 
@@ -395,11 +453,7 @@ Return the COMPLETE HTML document. Make it so impressive that a user's first rea
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      previewSlug,
-      message: "Website generated successfully",
-    })
+    return NextResponse.json({ success: true, previewSlug, message: "Website generated successfully" })
   } catch (error) {
     console.error("Generation error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
