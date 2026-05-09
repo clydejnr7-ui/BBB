@@ -60,7 +60,7 @@ const styleThemes: Record<string, {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IMAGE FETCHING — Pexels → Pixabay → Openverse → Picsum
+// IMAGE FETCHING — Pexels → Pixabay → Openverse → Picsum fallback
 // ─────────────────────────────────────────────────────────────────────────────
 
 function extractSearchQuery(name: string, description: string): string {
@@ -153,7 +153,7 @@ async function fetchImageSet(name: string, description: string, slug: string): P
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FORCE REAL IMAGES
-// After AI generates HTML, replace every picsum URL the AI invented
+// After AI generates HTML, replace every picsum URL the AI wrote
 // with our real fetched images in order. Guarantees topic-relevant photos.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -189,7 +189,6 @@ async function fixBrokenImages(html: string, slug: string): Promise<string> {
   const uniqueUrls = [...new Set(matches.map(m => m[1]))]
 
   const checkUrl = async (url: string): Promise<{ url: string; ok: boolean }> => {
-    // Trust known CDN domains — never do a server-side HEAD on them
     if (TRUSTED_IMAGE_DOMAINS.some(d => url.includes(d))) return { url, ok: true }
     try {
       const controller = new AbortController()
@@ -373,18 +372,18 @@ ONLY use: text-primary, text-accent, text-theme-muted, text-theme-text, bg-prima
 FORBIDDEN: ✗ text-muted ✗ text-text-muted ✗ bg-bg ✗ bg-muted ✗ border-muted
 
 ═══════════════════════════════════════════
-IMAGES — MANDATORY: use picsum.photos for ALL images
-Use unique seeds based on the site topic. Format: https://picsum.photos/seed/{descriptive-seed}/WIDTH/HEIGHT
+IMAGES — use picsum.photos for ALL images
+Use unique seeds. Format: https://picsum.photos/seed/{descriptive-seed}/WIDTH/HEIGHT
 Suggested seeds for "${name}":
-- Hero: https://picsum.photos/seed/${slug}-hero/1920/1080
-- Feature 1: https://picsum.photos/seed/${slug}-f1/800/600
-- Feature 2: https://picsum.photos/seed/${slug}-f2/800/600
-- Feature 3: https://picsum.photos/seed/${slug}-f3/800/600
-- Feature 4: https://picsum.photos/seed/${slug}-f4/800/600
+- Hero:          https://picsum.photos/seed/${slug}-hero/1920/1080
+- Feature 1:     https://picsum.photos/seed/${slug}-f1/800/600
+- Feature 2:     https://picsum.photos/seed/${slug}-f2/800/600
+- Feature 3:     https://picsum.photos/seed/${slug}-f3/800/600
+- Feature 4:     https://picsum.photos/seed/${slug}-f4/800/600
 - Gallery large: https://picsum.photos/seed/${slug}-g1/1200/800
-- Gallery small 1: https://picsum.photos/seed/${slug}-g2/800/600
-- Gallery small 2: https://picsum.photos/seed/${slug}-g3/800/600
-- Gallery small 3: https://picsum.photos/seed/${slug}-g4/800/600
+- Gallery sm 1:  https://picsum.photos/seed/${slug}-g2/800/600
+- Gallery sm 2:  https://picsum.photos/seed/${slug}-g3/800/600
+- Gallery sm 3:  https://picsum.photos/seed/${slug}-g4/800/600
 
 Image CSS rules:
 - Every <img>: class="w-full h-full object-cover block"
@@ -418,16 +417,65 @@ REQUIRED SECTIONS (8 total)
 
 7. CTA — style="background:var(--gradient)", white text + button
 
-8. FOOTER — 4-col dark, "© 2025 ${name}" + "Built with PNG Website Builders"
+8. FOOTER — 4-col dark, bottom bar "© 2025 ${name}" + "Built with PNG Website Builders"
+   Social icons — copy these EXACT SVGs, each inside:
+   <a href="#" class="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:border-white/60 transition-colors">
+
+   Facebook:
+   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+
+   X (Twitter):
+   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+
+   Instagram:
+   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+
+   LinkedIn:
+   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+
+   YouTube:
+   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="white"/></svg>
 
 ═══════════════════════════════════════════
 SCRIPTS before </body>
 ═══════════════════════════════════════════
-IntersectionObserver for .fade-in, navbar scroll shadow, animated counters.
+<script>
+  const revealObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('visible'); revealObs.unobserve(entry.target); }
+    });
+  }, { threshold: 0.05 });
+  document.querySelectorAll('.fade-in').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight) { el.classList.add('visible'); } else { revealObs.observe(el); }
+  });
+  const navbar = document.querySelector('nav');
+  if (navbar) { window.addEventListener('scroll', () => { navbar.style.boxShadow = window.scrollY > 60 ? '0 4px 30px rgba(0,0,0,0.25)' : 'none'; }); }
+  document.querySelectorAll('.counter').forEach(el => {
+    const target = parseInt(el.getAttribute('data-target') || '0');
+    const suffix = el.getAttribute('data-suffix') || '';
+    const step = target / 120; let current = 0;
+    const cObs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        const timer = setInterval(() => { current += step; if (current >= target) { current = target; clearInterval(timer); } el.textContent = Math.floor(current).toLocaleString() + suffix; }, 16);
+        cObs.unobserve(el);
+      }
+    });
+    cObs.observe(el);
+  });
+</script>
 
-Section padding: py-24 min. Content: max-w-7xl mx-auto px-6. Make it WOW.
+═══════════════════════════════════════════
+PREMIUM QUALITY RULES
+═══════════════════════════════════════════
+- Section padding: py-24 minimum (py-32 for hero and CTA)
+- All content: max-w-7xl mx-auto px-6
+- Every section has an eyebrow label (text-xs uppercase tracking-widest font-semibold text-accent mb-3)
+- Every section subtitle followed by: <span class="accent-bar"></span>
+- Section headings: text-4xl md:text-5xl font-black tracking-tight
+- Make it so impressive the user's first reaction is "wow"
 
-Return COMPLETE HTML starting with <!DOCTYPE html>.`
+Return the COMPLETE HTML document starting with <!DOCTYPE html>.`
 
     const response = await fetch(`${process.env.OPENROUTER_BASE_URL}/chat/completions`, {
       method: "POST",
@@ -467,13 +515,13 @@ Return COMPLETE HTML starting with <!DOCTYPE html>.`
     if (cleanHtml.endsWith("```")) cleanHtml = cleanHtml.slice(0, -3)
     cleanHtml = cleanHtml.trim()
 
-    // Step 1: Fix bad class names, missing config, gradient text
+    // Step 1: Fix class names, missing config, gradient text
     cleanHtml = sanitizeGeneratedHtml(cleanHtml, theme)
 
     // Step 2: Replace every picsum URL the AI used with our real fetched images
     cleanHtml = forceRealImages(cleanHtml, imageSet)
 
-    // Step 3: Verify any remaining unknown URLs — trusted CDN domains are never replaced
+    // Step 3: Check any remaining unknown URLs — trusted CDN domains skipped
     cleanHtml = await fixBrokenImages(cleanHtml, slug)
 
     const previewSlug = nanoid(10)
