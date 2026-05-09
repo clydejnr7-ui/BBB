@@ -1,93 +1,69 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Star } from "lucide-react"
+import { Star, Quote } from "lucide-react"
 
 const testimonials = [
-  {
-    name: "Sarah Chen",
-    role: "Startup Founder",
-    content: "SiteForge saved me weeks of development time. I had a professional landing page for my startup in under 5 minutes. Absolutely incredible!",
-    rating: 5,
-    initials: "SC",
-  },
-  {
-    name: "Marcus Johnson",
-    role: "Freelance Designer",
-    content: "The AI understands design principles better than most developers I have worked with. The generated code is clean and easy to customize.",
-    rating: 5,
-    initials: "MJ",
-  },
-  {
-    name: "Emily Rodriguez",
-    role: "Marketing Manager",
-    content: "We use SiteForge for all our campaign landing pages now. It is fast, the results are beautiful, and our conversion rates have improved significantly.",
-    rating: 5,
-    initials: "ER",
-  },
-  {
-    name: "David Kim",
-    role: "Agency Owner",
-    content: "This tool has transformed how our agency works. We can prototype ideas instantly and deliver to clients faster than ever before.",
-    rating: 5,
-    initials: "DK",
-  },
-  {
-    name: "Lisa Thompson",
-    role: "E-commerce Owner",
-    content: "I was skeptical about AI-generated websites, but SiteForge blew me away. My product pages look professional and convert really well.",
-    rating: 5,
-    initials: "LT",
-  },
-  {
-    name: "Alex Patel",
-    role: "Tech Entrepreneur",
-    content: "The responsive designs are perfect on every device. I have tried other AI tools, but SiteForge is in a league of its own.",
-    rating: 5,
-    initials: "AP",
-  },
+  { name: "Sarah Chen", role: "Startup Founder", content: "SiteForge saved me weeks of development time. I had a professional landing page for my startup in under 5 minutes. Absolutely incredible!", initials: "SC", color: "bg-violet-500" },
+  { name: "Marcus Johnson", role: "Freelance Designer", content: "The AI understands design principles better than most developers I have worked with. The generated code is clean and easy to customise.", initials: "MJ", color: "bg-blue-500" },
+  { name: "Emily Rodriguez", role: "Marketing Manager", content: "We use SiteForge for all our campaign landing pages now. It is fast, the results are beautiful, and our conversion rates have improved significantly.", initials: "ER", color: "bg-emerald-500" },
+  { name: "David Kim", role: "Agency Owner", content: "This tool has transformed how our agency works. We can prototype ideas instantly and deliver to clients faster than ever before.", initials: "DK", color: "bg-orange-500" },
+  { name: "Lisa Thompson", role: "E-commerce Owner", content: "I was skeptical about AI-generated websites, but SiteForge blew me away. My product pages look professional and convert really well.", initials: "LT", color: "bg-rose-500" },
+  { name: "Alex Patel", role: "Tech Entrepreneur", content: "The responsive designs are perfect on every device. I have tried other AI tools, but SiteForge is in a league of its own.", initials: "AP", color: "bg-indigo-500" },
+  { name: "Priya Nair", role: "Product Designer", content: "What used to take a full day now takes minutes. The quality of the output is stunning — clients think I hired an entire design team.", initials: "PN", color: "bg-teal-500" },
+  { name: "James O'Brien", role: "Small Business Owner", content: "I have no technical background whatsoever, and I built a website I'm genuinely proud of. SiteForge is magic.", initials: "JO", color: "bg-amber-500" },
 ]
 
-export function Testimonials() {
+function TestimonialCard({ t }: { t: typeof testimonials[0] }) {
   return (
-    <section id="testimonials" className="py-24 bg-muted/30">
-      <div className="container mx-auto px-4">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-balance">
-            Loved by Creators Worldwide
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground text-pretty">
-            Join thousands of satisfied users who are building amazing websites with SiteForge.
-          </p>
+    <div className="w-[260px] sm:w-72 md:w-80 shrink-0 rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-sm mx-2 sm:mx-3">
+      <Quote className="h-5 w-5 text-primary/40 mb-3" />
+      <p className="text-sm leading-relaxed text-foreground/80 mb-5">{t.content}</p>
+      <div className="flex items-center gap-3">
+        <div className={`h-9 w-9 rounded-full ${t.color} flex items-center justify-center text-white text-xs font-bold shrink-0`}>{t.initials}</div>
+        <div>
+          <p className="text-sm font-semibold leading-none mb-1">{t.name}</p>
+          <p className="text-xs text-muted-foreground">{t.role}</p>
         </div>
-
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-          {testimonials.map((testimonial) => (
-            <Card key={testimonial.name} className="bg-card/50 backdrop-blur-sm">
-              <CardContent className="pt-6">
-                <div className="flex gap-1 mb-4">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="text-sm leading-relaxed mb-4">
-                  {`"${testimonial.content}"`}
-                </p>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                      {testimonial.initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">{testimonial.name}</p>
-                    <p className="text-xs text-muted-foreground">{testimonial.role}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="ml-auto flex gap-0.5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+export function Testimonials() {
+  const row1 = [...testimonials, ...testimonials]
+  const row2 = [...testimonials.slice(4), ...testimonials.slice(0, 4), ...testimonials.slice(4), ...testimonials.slice(0, 4)]
+
+  return (
+    <section id="testimonials" className="py-16 sm:py-20 lg:py-28 overflow-hidden relative">
+      <div className="absolute inset-0 -z-10 bg-muted/20" />
+      <div className="container mx-auto px-4 mb-10 sm:mb-14 lg:mb-16">
+        <div className="text-center max-w-2xl mx-auto">
+          <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-4">Testimonials</p>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-balance leading-tight">
+            Loved by creators <span className="gradient-text">worldwide</span>
+          </h2>
+          <p className="mt-5 text-lg text-muted-foreground text-pretty leading-relaxed">
+            Join thousands of satisfied users building amazing websites with PNG Website Builders.
+          </p>
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div className="relative flex overflow-hidden">
+          <div className="flex marquee-left">
+            {row1.map((t, i) => <TestimonialCard key={`r1-${i}`} t={t} />)}
+          </div>
+        </div>
+        <div className="relative flex overflow-hidden">
+          <div className="flex marquee-right">
+            {row2.map((t, i) => <TestimonialCard key={`r2-${i}`} t={t} />)}
+          </div>
+        </div>
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-10 sm:w-20 lg:w-32 bg-gradient-to-r from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-10 sm:w-20 lg:w-32 bg-gradient-to-l from-background to-transparent" />
     </section>
   )
 }
