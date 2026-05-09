@@ -3,58 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 import { nanoid } from "nanoid"
 
-async function fetchTopicImages(name: string, description: string): Promise<{
-  hero: string
-  cards: string[]
-  gallery: string[]
-  about: string[]
-}> {
-  const allUrls: string[] = []
-
-  const queries = [
-    `${name} ${description}`.slice(0, 80),
-    name,
-    description.split(" ").slice(0, 4).join(" "),
-  ]
-
-  for (const q of queries) {
-    try {
-      const res = await fetch(
-        `https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&page_size=6`,
-        { headers: { "User-Agent": "WebsiteBuilder/1.0 (contact@pngwebsitebuilders.site)" } }
-      )
-      if (res.ok) {
-        const data = await res.json()
-        const urls: string[] = (data.results || [])
-          .filter((r: { width: number; url: string }) => r.width >= 400 && r.url)
-          .map((r: { url: string }) => r.url)
-        allUrls.push(...urls)
-      }
-    } catch {
-      // continue to next query
-    }
-  }
-
-  const unique = [...new Set(allUrls)]
-
-  const seed = encodeURIComponent(name.toLowerCase().replace(/\s+/g, "-"))
-  let i = unique.length
-  while (unique.length < 12) {
-    unique.push(`https://picsum.photos/seed/${seed}-${i}/800/600`)
-    i++
-  }
-
-  return {
-    hero: unique[0],
-    cards: unique.slice(1, 5),
-    gallery: unique.slice(5, 9),
-    about: unique.slice(9, 12),
-  }
-}
-
 const styleThemes: Record<string, {
   fonts: string
-  fontImport: string
   headingFont: string
   bodyFont: string
   primary: string
@@ -70,7 +20,6 @@ const styleThemes: Record<string, {
 }> = {
   modern: {
     fonts: "Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700",
-    fontImport: "Inter, sans-serif",
     headingFont: "'Space Grotesk', sans-serif",
     bodyFont: "'Inter', sans-serif",
     primary: "#6366f1",
@@ -86,7 +35,6 @@ const styleThemes: Record<string, {
   },
   minimal: {
     fonts: "Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700",
-    fontImport: "Inter, sans-serif",
     headingFont: "'Playfair Display', serif",
     bodyFont: "'Inter', sans-serif",
     primary: "#1a1a1a",
@@ -102,7 +50,6 @@ const styleThemes: Record<string, {
   },
   startup: {
     fonts: "Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800",
-    fontImport: "Plus Jakarta Sans, sans-serif",
     headingFont: "'Syne', sans-serif",
     bodyFont: "'Plus Jakarta Sans', sans-serif",
     primary: "#0ea5e9",
@@ -118,7 +65,6 @@ const styleThemes: Record<string, {
   },
   creative: {
     fonts: "DM+Sans:wght@300;400;500;700&family=Cormorant+Garamond:wght@400;500;600;700",
-    fontImport: "DM Sans, sans-serif",
     headingFont: "'Cormorant Garamond', serif",
     bodyFont: "'DM Sans', sans-serif",
     primary: "#ec4899",
@@ -134,7 +80,6 @@ const styleThemes: Record<string, {
   },
   corporate: {
     fonts: "Nunito+Sans:wght@300;400;600;700;800&family=Merriweather:wght@400;700",
-    fontImport: "Nunito Sans, sans-serif",
     headingFont: "'Merriweather', serif",
     bodyFont: "'Nunito Sans', sans-serif",
     primary: "#1e40af",
@@ -177,10 +122,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Insufficient credits" }, { status: 402 })
     }
 
-    const [images] = await Promise.all([fetchTopicImages(name, description)])
     const theme = styleThemes[style] || styleThemes.modern
+    const slug = name.toLowerCase().replace(/\s+/g, "-")
 
-    const systemPrompt = `You are a world-class UI/UX designer and senior frontend developer at a top-tier agency. Your job is to produce stunning, professional, premium websites that look like they were built by a $50,000 agency. Every site you produce should be immediately impressive — the kind that wins design awards.
+    const systemPrompt = `You are a world-class UI/UX designer and senior frontend developer at a top-tier agency. Your job is to produce stunning, professional, premium websites that look like they were built by a $50,000 agency. Every site you produce should be immediately impressive.
 
 PROJECT:
 - Name: ${name}
@@ -194,11 +139,10 @@ TECH STACK
 ═══════════════════════════════════════════
 - Tailwind CSS: <script src="https://cdn.tailwindcss.com"></script>
 - Google Fonts: <link href="https://fonts.googleapis.com/css2?family=${theme.fonts}&display=swap" rel="stylesheet">
-- Lucide Icons (for SVG icons): use inline SVG from lucide.dev OR embed simple SVG paths directly
-- Alpine.js for interactivity (optional but preferred for menus): <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+- Alpine.js: <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
 ═══════════════════════════════════════════
-DESIGN SYSTEM — use these CSS variables
+DESIGN SYSTEM — define these in <style>
 ═══════════════════════════════════════════
 :root {
   --primary: ${theme.primary};
@@ -217,151 +161,8 @@ DESIGN SYSTEM — use these CSS variables
   --shadow-lg: 0 12px 48px rgba(0,0,0,0.2);
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-body {
-  font-family: var(--body-font);
-  background: var(--bg);
-  color: var(--text);
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-}
-
-h1, h2, h3, h4 {
-  font-family: var(--heading-font);
-}
-
-═══════════════════════════════════════════
-REQUIRED SECTIONS (all 8, in this order)
-═══════════════════════════════════════════
-
-1. NAVBAR — sticky, glass morphism, premium
-   - backdrop-filter: blur(20px) + background: ${theme.navBg}
-   - Logo (business name in heading font, bold, with small color accent)
-   - Desktop nav links with hover underline animation
-   - Mobile hamburger menu (Alpine.js x-data toggle)
-   - CTA button (filled, primary color, rounded-full, px-6 py-2.5)
-   - Smooth border-bottom on scroll (add via JS scroll listener)
-
-2. HERO — full viewport height, cinematic, premium
-   - Full-screen background using the hero image below (object-cover)
-   - Overlay: ${theme.heroOverlay}
-   - ABOVE THE FOLD: Large display heading (text-6xl md:text-8xl, font-black, tracking-tight)
-   - Gradient text effect on key words: background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent
-   - Subheadline (text-xl, muted, max-w-2xl, leading-relaxed)
-   - Two CTA buttons: primary (filled gradient) + secondary (outline, glass)
-   - Animated scroll indicator (bouncing chevron-down arrow at bottom)
-   - Scroll-fade-in animation on all hero text (use IntersectionObserver or CSS animation)
-
-3. STATS / NUMBERS — social proof band
-   - Full-width, contrasting background (primary color or dark surface)
-   - 4 stats with large numbers (text-5xl, font-black), labels below
-   - Numbers relevant to the business (years experience, clients served, projects done, satisfaction %)
-   - Subtle dividers between stats on desktop
-
-4. FEATURES / SERVICES — what they offer
-   - Section heading centered, with gradient accent line under it
-   - Grid of exactly 4 cards (2x2 on desktop, 1 col on mobile)
-   - Each card: image on top, icon badge, bold title, description
-   - Cards have hover: translateY(-8px) + shadow-lg + border-color change
-   - All card transitions use var(--transition)
-
-5. GALLERY / SHOWCASE — visual proof
-   - Masonry-style or asymmetric grid (not boring equal grid)
-   - At least 4 images in an interesting layout (one large + three small, or 2+2 offset)
-   - Light overlay on hover showing caption text
-   - rounded-2xl overflow-hidden on all image containers
-
-6. TESTIMONIALS — trust building
-   - 3 testimonial cards with: quote icon, review text, avatar circle (use CSS gradient as avatar), name, title/company
-   - Cards with subtle border and surface background
-   - Star ratings (5 filled stars using SVG)
-
-7. CALL TO ACTION — conversion section
-   - Full-width, gradient background (var(--gradient))
-   - Bold headline, subtext, large CTA button (white filled)
-   - Optional: subtle background pattern or noise texture overlay using CSS
-
-8. FOOTER — complete, professional
-   - Dark background, multi-column layout (logo+desc, nav links, contact info)
-   - Social icons (Twitter/X, Instagram, LinkedIn, Facebook) as SVG circles
-   - Copyright bar at bottom with separator line
-   - "Built with PNG Website Builders" credit in small muted text
-
-═══════════════════════════════════════════
-IMAGES — use ONLY these verified URLs
-═══════════════════════════════════════════
-Do NOT change, shorten, or invent any image URL. Use exactly as provided.
-
-Hero: ${images.hero}
-Card 1: ${images.cards[0]}
-Card 2: ${images.cards[1]}
-Card 3: ${images.cards[2]}
-Card 4: ${images.cards[3]}
-Gallery 1: ${images.gallery[0]}
-Gallery 2: ${images.gallery[1]}
-Gallery 3: ${images.gallery[2]}
-Gallery 4: ${images.gallery[3]}
-About/misc 1: ${images.about[0]}
-About/misc 2: ${images.about[1]}
-
-Image CSS rules (non-negotiable):
-- Every <img>: class="w-full h-full object-cover block"
-- Every image container: explicit height ALWAYS (style="height:Xpx" or h-64/h-72/h-80/h-96)
-- Hero container: style="height:100vh" class="relative w-full overflow-hidden"
-- Card image containers: style="height:240px" class="w-full overflow-hidden"
-- Gallery large image: style="height:480px"
-- Gallery small images: style="height:230px"
-- loading="lazy" and descriptive alt text on every image
-
-═══════════════════════════════════════════
-ANIMATIONS & INTERACTIONS
-═══════════════════════════════════════════
-Add this IntersectionObserver script BEFORE closing </body>:
-<script>
-  // Fade-in on scroll
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(el => {
-      if (el.isIntersecting) {
-        el.target.classList.add('visible');
-        observer.unobserve(el.target);
-      }
-    });
-  }, { threshold: 0.15 });
-  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-
-  // Navbar scroll effect
-  const nav = document.querySelector('nav');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 60) {
-      nav.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
-      nav.style.boxShadow = '0 4px 30px rgba(0,0,0,0.3)';
-    } else {
-      nav.style.borderBottom = 'none';
-      nav.style.boxShadow = 'none';
-    }
-  });
-
-  // Counter animation for stats section
-  document.querySelectorAll('.counter').forEach(el => {
-    const target = parseInt(el.getAttribute('data-target'));
-    const duration = 2000;
-    const step = target / (duration / 16);
-    let current = 0;
-    const counterObserver = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        const timer = setInterval(() => {
-          current += step;
-          if (current >= target) { current = target; clearInterval(timer); }
-          el.textContent = Math.floor(current).toLocaleString() + (el.getAttribute('data-suffix') || '');
-        }, 16);
-        counterObserver.unobserve(el);
-      }
-    });
-    counterObserver.observe(el);
-  });
-</script>
-
-Add this CSS in <style> tag in <head>:
+body { font-family: var(--body-font); background: var(--bg); color: var(--text); scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+h1,h2,h3,h4 { font-family: var(--heading-font); }
 .fade-in { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
 .fade-in.visible { opacity: 1; transform: translateY(0); }
 .fade-in-delay-1 { transition-delay: 0.1s; }
@@ -369,50 +170,144 @@ Add this CSS in <style> tag in <head>:
 .fade-in-delay-3 { transition-delay: 0.3s; }
 .fade-in-delay-4 { transition-delay: 0.4s; }
 
-Add class="fade-in" to: section headings, cards, gallery images, testimonials, stat numbers.
+═══════════════════════════════════════════
+IMAGES — Picsum Photos (always reliable)
+═══════════════════════════════════════════
+URL format: https://picsum.photos/seed/{seed}/{width}/{height}
+
+Rules:
+- {seed} must be a descriptive word or phrase tied directly to the image content and site topic
+- Use different unique seeds for every single image so no two images are the same
+- Derive seeds from the site's subject matter — if it's a travel site, use seeds like "jungle", "beach", "waterfall", "reef", "village"; if it's a restaurant, use "food", "dining", "chef", "kitchen", "dessert"
+- Seeds are case-sensitive strings — keep them lowercase, no spaces (use hyphens)
+- Required images with example seeds for a site about "${name}":
+  - Hero (1400x700): seed = "${slug}-hero"
+  - Feature card 1 (800x500): seed = "${slug}-feature1"
+  - Feature card 2 (800x500): seed = "${slug}-feature2"
+  - Feature card 3 (800x500): seed = "${slug}-feature3"
+  - Feature card 4 (800x500): seed = "${slug}-feature4"
+  - Gallery image 1 (600x400): seed = "${slug}-gallery1"
+  - Gallery image 2 (600x400): seed = "${slug}-gallery2"
+  - Gallery image 3 (600x400): seed = "${slug}-gallery3"
+  - Gallery image 4 (600x400): seed = "${slug}-gallery4"
+  - About/team (400x500): seed = "${slug}-team1"
+  - About/team (400x500): seed = "${slug}-team2"
+
+Image CSS rules (non-negotiable — follow exactly):
+- Every <img>: class="w-full h-full object-cover block"
+- Every image container: explicit height ALWAYS (style="height:Xpx" or Tailwind h-64 / h-72 / h-80 / h-96)
+- NEVER put an image in a container without an explicit height
+- Hero container: style="height:100vh" class="relative w-full overflow-hidden"
+- Card image containers: style="height:240px" class="w-full overflow-hidden"
+- Gallery large image: style="height:480px"
+- Gallery small images: style="height:230px"
+- Add loading="lazy" and descriptive alt text on every image
 
 ═══════════════════════════════════════════
-PREMIUM DETAILS — these separate good from great
+REQUIRED SECTIONS (all 8, in this order)
 ═══════════════════════════════════════════
-- Section spacing: py-24 minimum between sections (py-32 for hero, CTA)
-- Headings: always tracking-tight or tracking-tighter, font-black or font-bold
-- Buttons: rounded-full, px-8 py-4, font-semibold, with hover:scale-105 transition
-- Primary gradient button CSS: background: var(--gradient); color: white; border: none
-- Outline button: border: 2px solid rgba(255,255,255,0.4); color: white; backdrop-filter: blur(8px)
-- Cards: border: 1px solid rgba(255,255,255,0.06); background: var(--surface); border-radius: var(--radius-lg)
-- Gradient divider after section headings: a 3px tall, 60px wide, rounded bar using var(--gradient) centered below the subtitle
-- Every section has a descriptive eyebrow label above the heading (small uppercase, letter-spacing, primary color)
-- Content max-width: max-w-7xl mx-auto px-6 for all sections
+
+1. NAVBAR — sticky, glass morphism
+   - position: fixed; top: 0; width: 100%; backdrop-filter: blur(20px); background: ${theme.navBg}; z-index: 50
+   - Logo: business name in heading font, bold, with a small colored dot or accent
+   - Desktop nav links with smooth hover underline animation
+   - Mobile hamburger (Alpine.js x-data toggle, animated)
+   - CTA button: rounded-full, px-6 py-2.5, gradient background, font-semibold
+
+2. HERO — full viewport, cinematic
+   - Full-screen background image (height: 100vh, object-cover)
+   - Overlay: ${theme.heroOverlay}
+   - Eyebrow label: small uppercase text, letter-spacing, primary color
+   - Main heading: text-6xl md:text-8xl, font-black, tracking-tight
+   - Gradient text on 1-2 key words: background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text
+   - Subheadline: text-xl, muted color, max-w-2xl, leading-relaxed
+   - Two CTAs: primary (gradient background) + secondary (glass outline)
+   - Animated scroll indicator at bottom (CSS bouncing chevron)
+   - Add class="fade-in" to heading and subtext
+
+3. STATS / NUMBERS — social proof
+   - Full-width contrasting band (primary or dark surface bg)
+   - 4 meaningful stats with: large number (text-5xl, font-black, class="counter" data-target="X" data-suffix="+"), label below
+   - Numbers relevant to the business type
+   - Subtle vertical dividers between stats on desktop
+
+4. FEATURES / SERVICES — 4 cards
+   - Centered section heading with gradient accent bar underneath
+   - Eyebrow label above heading
+   - 2x2 grid (desktop), 1-col (mobile)
+   - Each card: image top + icon badge + bold title + description
+   - Hover: transform: translateY(-8px) + box-shadow upgrade
+   - Card border: 1px solid rgba(255,255,255,0.06) (or light version for light themes)
+
+5. GALLERY / SHOWCASE — asymmetric layout
+   - One large image left + three smaller images right (or 2+2 offset)
+   - rounded-2xl on all containers, overflow-hidden
+   - Hover overlay with caption text (opacity transition)
+   - "View Gallery" link at bottom
+
+6. TESTIMONIALS — 3 cards
+   - Large quote mark (SVG or CSS), review text, 5-star SVG rating
+   - Avatar: CSS gradient circle with initials, name, title/company below
+   - Cards: surface background, subtle border, rounded-2xl
+
+7. CALL TO ACTION — conversion
+   - Full-width, gradient background (var(--gradient))
+   - Bold headline, subtext, large white CTA button
+   - Optional: subtle dot-grid or noise overlay using CSS background-image
+
+8. FOOTER — complete, multi-column
+   - Dark background, 4 columns: logo+desc, navigation, services, contact
+   - Social icons (Twitter/X, Instagram, LinkedIn, Facebook) as inline SVG in bordered circles
+   - Bottom bar with copyright and "Built with PNG Website Builders"
 
 ═══════════════════════════════════════════
-HTML STRUCTURE
+PREMIUM QUALITY RULES
 ═══════════════════════════════════════════
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="..." />
-  <title>${name}</title>
-  [Google Fonts link]
-  [Tailwind CDN]
-  [Alpine.js CDN]
-  <style>
-    [CSS variables + body + heading fonts + animation classes + any custom CSS]
-  </style>
-</head>
-<body>
-  [nav]
-  [hero]
-  [stats]
-  [features]
-  [gallery]
-  [testimonials]
-  [cta]
-  [footer]
-  [scripts]
-</body>
-</html>
+- Section padding: py-24 minimum, py-32 for hero and CTA
+- All content inside: max-w-7xl mx-auto px-6
+- Buttons: rounded-full, px-8 py-4, font-semibold, hover:scale-105 + transition
+- Gradient button: background: var(--gradient); color: white
+- Glass button: border: 2px solid rgba(255,255,255,0.3); backdrop-filter: blur(8px); color: white
+- Every section has an eyebrow label (small, uppercase, letter-spacing-widest, primary color)
+- Gradient accent divider after each section subtitle: a 3px × 60px bar, background: var(--gradient), border-radius: 9999px, centered
+- Section headings: text-4xl md:text-5xl, font-black, tracking-tight
+- Add class="fade-in fade-in-delay-X" to cards and images for staggered reveal
+
+═══════════════════════════════════════════
+SCRIPTS (add before </body>)
+═══════════════════════════════════════════
+<script>
+  // Scroll fade-in
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(el => { if (el.isIntersecting) { el.target.classList.add('visible'); observer.unobserve(el.target); } });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // Navbar scroll shadow
+  const nav = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    nav.style.boxShadow = window.scrollY > 60 ? '0 4px 30px rgba(0,0,0,0.25)' : 'none';
+  });
+
+  // Animated counters
+  document.querySelectorAll('.counter').forEach(el => {
+    const target = parseInt(el.getAttribute('data-target'));
+    const suffix = el.getAttribute('data-suffix') || '';
+    const step = target / 120;
+    let current = 0;
+    const counterObs = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        const timer = setInterval(() => {
+          current += step;
+          if (current >= target) { current = target; clearInterval(timer); }
+          el.textContent = Math.floor(current).toLocaleString() + suffix;
+        }, 16);
+        counterObs.unobserve(el);
+      }
+    });
+    counterObs.observe(el);
+  });
+</script>
 
 Return the COMPLETE HTML document. Make it so impressive that a user's first reaction is "wow".`
 
@@ -428,7 +323,7 @@ Return the COMPLETE HTML document. Make it so impressive that a user's first rea
         model: "openrouter/auto",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Create a stunning, premium ${style} website for: ${name}. ${description}` }
+          { role: "user", content: `Create a stunning, premium ${style} website for: ${name}. ${description}` },
         ],
         max_tokens: 16000,
         temperature: 0.65,
