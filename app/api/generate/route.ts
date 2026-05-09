@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { sendWelcomeEmail } from "@/lib/email"
 import { NextResponse } from "next/server"
 import { nanoid } from "nanoid"
 
@@ -38,57 +37,67 @@ Style: ${style}
 
 Return only valid HTML/CSS/JS (no markdown wrappers, no \`\`\`html blocks). Use Tailwind CSS via CDN (<script src="https://cdn.tailwindcss.com"></script>).
 
-IMAGES — You MUST use LoremFlickr URLs so photos visually match the site content.
+IMAGES — Use Unsplash Source URLs. These always return real, high-quality photos based on keywords.
 
-URL format: https://loremflickr.com/{width}/{height}/{keyword1},{keyword2}
-- Replace {keyword1},{keyword2} with 1-3 comma-separated English nouns that describe what the image should show
-- Base ALL keywords on the project name and description — never use generic words like "image" or "photo"
-- Examples based on context:
-  - Restaurant site → "restaurant,food,dining"
-  - Tech startup → "technology,software,innovation"
-  - Travel agency → "travel,beach,adventure"
-  - Law firm → "law,office,professional"
-  - Gym/fitness → "fitness,gym,exercise"
-  - Real estate → "house,realestate,architecture"
-  - Medical clinic → "medical,hospital,healthcare"
-  - Beauty salon → "beauty,salon,hair"
-  - Photography → "photography,camera,portrait"
-  - Coffee shop → "coffee,cafe,espresso"
+URL format: https://source.unsplash.com/{width}x{height}/?{keyword1},{keyword2}
 
-Analyze the project name and description carefully, then choose image keywords that accurately reflect: "${description}"
+CRITICAL KEYWORD RULE — Never use specific country names, city names, or proper nouns as keywords. Unsplash does not index by location name. Instead, describe what you would VISUALLY SEE there:
+- "Papua New Guinea travel" → use: jungle,rainforest,island,coral,reef,waterfall,tribe,culture
+- "Paris travel" → use: city,architecture,cafe,street,eiffel
+- "Dubai tourism" → use: skyscraper,desert,luxury,skyline,city
+- "Nigerian food" → use: food,spices,cooking,market,cuisine
+- "Maldives resort" → use: ocean,beach,tropical,island,turquoise
+
+Keyword strategy — always think: "What would a photo of this LOOK LIKE?" and use those visual nouns.
+
+More keyword examples by industry:
+- Restaurant / food → food, cooking, restaurant, dining, cuisine, chef, meal
+- Tech startup → technology, computer, office, innovation, coding, startup
+- Gym / fitness → fitness, gym, exercise, workout, running, sport
+- Law firm → office, law, professional, business, meeting, justice
+- Real estate → house, architecture, interior, property, building, home
+- Medical / clinic → medical, hospital, doctor, health, clinic, care
+- Beauty salon → beauty, hair, makeup, salon, spa, skincare
+- Photography studio → camera, photography, studio, portrait, light
+- Coffee shop → coffee, cafe, espresso, barista, cup, beans
+- Travel / adventure → travel, adventure, nature, landscape, mountain, beach
+- Jungle / tropical → jungle, rainforest, waterfall, tropical, nature, green
+- Ocean / marine → ocean, sea, coral, reef, underwater, beach, waves
+- Cultural / indigenous → culture, traditional, art, craft, village, ceremony
+
+Use 2-3 keywords per image, comma-separated, all lowercase. Each image on the page must have DIFFERENT keyword combinations so photos don't repeat.
 
 Required images and sizes:
-- Hero banner: 1400x700 — keywords must reflect the main topic of the site
-- Feature/service cards: 800x500 each — each card gets unique keywords matching that specific feature/service
-- About/team photos: 400x500 each — use "portrait,professional,team" or domain-specific variants
-- Gallery images: 600x400 each — varied keywords all tied to the site topic
+- Hero banner: 1600x800 — visual keywords matching the main site topic
+- Feature/service cards: 800x500 each — unique keyword combos per card matching each specific feature
+- About/team section: 400x500 each — "portrait,professional,team" or topic-specific
+- Gallery images: 600x400 each — varied keyword combos, all on-topic
 
 CRITICAL image CSS rules — every image MUST be fully visible, never clipped or broken:
 - All <img> tags MUST have: class="w-full h-full object-cover block"
-- Image containers MUST have explicit height set: use Tailwind classes like h-64, h-72, h-80, h-96, or inline style="height:400px"
+- Image containers MUST have explicit height: h-64, h-72, h-80, h-96, or style="height:400px"
 - NEVER use a container without an explicit height when it holds an image
-- Hero image container: use style="height:600px" with class="relative overflow-hidden w-full"
-- Card image containers: always use class="w-full overflow-hidden" with explicit height like h-56 or h-64
-- NEVER use max-h or min-h alone — always pair with an explicit h- class or style height
+- Hero image container: style="height:600px" with class="relative overflow-hidden w-full"
+- Card image containers: class="w-full overflow-hidden" with explicit height like h-56 or h-64
 - Add loading="lazy" and descriptive alt text to every img tag
 
-Example hero section for a restaurant:
+Example hero for a Papua New Guinea travel site:
 <section class="relative w-full overflow-hidden" style="height:600px">
-  <img src="https://loremflickr.com/1400/700/restaurant,food,dining" alt="Restaurant dining experience" loading="lazy" class="w-full h-full object-cover block" />
-  <div class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-6">
-    <h1 class="text-5xl font-bold mb-4">Your Headline Here</h1>
-    <p class="text-xl max-w-2xl">Supporting text goes here</p>
+  <img src="https://source.unsplash.com/1600x800/?jungle,rainforest,tropical" alt="Papua New Guinea jungle landscape" loading="lazy" class="w-full h-full object-cover block" />
+  <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white text-center px-6">
+    <h1 class="text-5xl font-bold mb-4">Discover Papua New Guinea</h1>
+    <p class="text-xl max-w-2xl">Explore untouched wilderness and vibrant culture</p>
   </div>
 </section>
 
-Example card with image for a restaurant:
+Example card for the same site:
 <div class="rounded-xl overflow-hidden shadow-lg bg-white">
   <div class="w-full overflow-hidden" style="height:220px">
-    <img src="https://loremflickr.com/800/500/pasta,italian,food" alt="Italian pasta dish" loading="lazy" class="w-full h-full object-cover block" />
+    <img src="https://source.unsplash.com/800/500/?coral,reef,ocean" alt="Coral reef diving" loading="lazy" class="w-full h-full object-cover block" />
   </div>
   <div class="p-6">
-    <h3 class="text-xl font-semibold mb-2">Card Title</h3>
-    <p class="text-gray-600">Card description text.</p>
+    <h3 class="text-xl font-semibold mb-2">Coral Triangle Diving</h3>
+    <p class="text-gray-600">World-class diving in pristine waters.</p>
   </div>
 </div>
 
