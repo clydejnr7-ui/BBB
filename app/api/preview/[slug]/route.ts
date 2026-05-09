@@ -19,12 +19,11 @@ export async function GET(
       return NextResponse.json({ error: "Site not found" }, { status: 404 })
     }
 
-    // Return sanitized HTML
     return new NextResponse(site.html_code, {
       headers: {
         "Content-Type": "text/html",
         "X-Frame-Options": "SAMEORIGIN",
-        "Content-Security-Policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com; img-src * data:; font-src 'self' https://fonts.gstatic.com;",
+        "Content-Security-Policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com https://picsum.photos; img-src * data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://picsum.photos;",
       },
     })
   } catch (error) {
